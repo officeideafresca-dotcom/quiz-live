@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quiz Live — Regia</title>
+<link rel="stylesheet" href="/css/admin.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="brand">Quiz <span>Live</span> — Regia</div>
+    <div class="subtitle">Pannello di controllo · non è visibile sul maxischermo</div>
+  </div>
+
+  <div class="box" id="pinBox">
+    <h3>Sblocca il pannello</h3>
+    <input type="password" id="pinInput" placeholder="PIN Admin" inputmode="numeric" autocomplete="off" />
+    <button class="btn-primary" id="btnUnlock">Sblocca</button>
+    <div class="error-msg" id="pinError"></div>
+  </div>
+
+  <div id="controls" style="display:none; flex-direction:column; gap:16px;">
+
+    <div class="box">
+      <h3>Stato attuale</h3>
+      <div class="status-grid">
+        <div class="status-item"><div class="label">Stato</div><div class="value" id="stStatus">—</div></div>
+        <div class="status-item"><div class="label">Domanda</div><div class="value" id="stQuestion">—</div></div>
+        <div class="status-item"><div class="label">Giocatori</div><div class="value" id="stPlayers">0</div></div>
+        <div class="status-item"><div class="label">Risposte</div><div class="value" id="stAnswers">—</div></div>
+      </div>
+    </div>
+
+    <div class="box">
+      <h3>Controllo partita</h3>
+      <button class="btn-primary" id="btnNextQuestion">▶ Avvia prossima domanda</button>
+      <button class="btn-secondary" id="btnReveal">Mostra risposta corretta</button>
+      <button class="btn-secondary" id="btnLeaderboard">Mostra classifica</button>
+      <button class="btn-secondary" id="btnEndGame">Termina partita</button>
+    </div>
+
+    <div class="box">
+      <h3>Esportazione</h3>
+      <button class="btn-secondary" id="btnExport">Scarica risultati (CSV)</button>
+    </div>
+
+    <div class="box">
+      <h3>Crea / modifica quiz</h3>
+      <label>Titolo del quiz</label>
+      <input type="text" id="quizTitleInput" placeholder="Es. Quiz dei 25 anni" maxlength="80" />
+      <div id="questionsList" style="display:flex; flex-direction:column; gap:10px;"></div>
+      <button class="btn-secondary" id="btnAddQuestion">+ Aggiungi domanda</button>
+      <button class="btn-primary" id="btnSaveQuiz">Salva quiz</button>
+      <div class="error-msg" id="quizError"></div>
+    </div>
+
+    <div class="box">
+      <h3>Zona pericolosa</h3>
+      <button class="btn-danger" id="btnReset">Reset completo (nuova partita)</button>
+    </div>
+
+    <div class="lock-hint">Puoi chiudere questa pagina in sicurezza: i comandi restano protetti dal PIN.</div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>

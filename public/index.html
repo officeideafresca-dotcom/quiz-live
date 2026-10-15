@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Quiz Live</title>
+<link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div class="app">
+  <div class="app-header">
+    <div class="brand">Quiz <span>Live</span></div>
+  </div>
+
+  <!-- 1. Ingresso -->
+  <div class="screen-panel show" id="panelJoin">
+    <div class="card">
+      <h2 style="margin-top:0;">Entra nel quiz</h2>
+      <input type="text" id="nicknameInput" placeholder="Il tuo nome" maxlength="24" autocomplete="off" />
+      <button class="btn" id="joinBtn">Entra</button>
+      <div id="joinError" style="color:#ffb3c0; margin-top:10px; font-size:0.85rem;"></div>
+    </div>
+  </div>
+
+  <!-- 2. Lobby di attesa -->
+  <div class="screen-panel" id="panelLobby">
+    <div class="pulse-dot"></div>
+    <h2>Sei dentro!</h2>
+    <div class="nickname-tag" id="lobbyNickname">—</div>
+    <p style="opacity:0.8;">In attesa che l'host avvii il quiz... guarda il maxischermo</p>
+  </div>
+
+  <!-- 3. Domanda attiva: solo risposte colorate, niente testo (stile Kahoot) -->
+  <div class="screen-panel" id="panelQuestion">
+    <div class="timer-ring" id="questionTimer">--</div>
+    <div class="answer-grid" id="answerGrid"></div>
+  </div>
+
+  <!-- 4. Risposta bloccata, in attesa del reveal -->
+  <div class="screen-panel" id="panelLocked">
+    <div class="pulse-dot"></div>
+    <div class="locked-box">Risposta inviata!</div>
+    <p style="opacity:0.8;">Guarda il maxischermo per il risultato...</p>
+  </div>
+
+  <!-- 5. Reveal del risultato personale -->
+  <div class="screen-panel" id="panelReveal">
+    <div class="result-icon" id="revealIcon">🎉</div>
+    <div id="revealText" style="font-size:1.3rem; font-weight:800;"></div>
+    <div class="result-points" id="revealPoints"></div>
+    <div class="nickname-tag" id="revealRank"></div>
+  </div>
+
+  <!-- 6. Classifica -->
+  <div class="screen-panel" id="panelLeaderboard">
+    <h2>Classifica</h2>
+    <div class="rank-list" id="leaderboardList"></div>
+  </div>
+
+  <!-- 7. Fine gioco -->
+  <div class="screen-panel" id="panelFinished">
+    <div class="result-icon">🏆</div>
+    <h2>Quiz finito!</h2>
+    <div class="nickname-tag" id="finalRank">—</div>
+    <div class="rank-list" id="finalList" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/participant.js"></script>
+</body>
+</html>

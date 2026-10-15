@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quiz Live — Schermo</title>
+<link rel="stylesheet" href="/css/screen.css" />
+</head>
+<body>
+<div class="screen" id="screenRoot">
+  <div class="topbar">
+    <div class="brand">Quiz <span>Live</span></div>
+    <div class="meta" id="quizTitleText">—</div>
+    <div class="meta" id="progressText"></div>
+  </div>
+
+  <div class="view show" id="viewLobby">
+    <div class="lobby-title" id="lobbyQuizTitle">Quiz Live</div>
+    <img class="lobby-qr" id="qrImg" src="/api/qr" alt="QR" />
+    <div class="player-count" id="playerCount">0 giocatori connessi</div>
+    <div class="player-grid" id="playerGrid"></div>
+  </div>
+
+  <div class="view" id="viewQuestion">
+    <div class="q-timer" id="qTimer">--</div>
+    <div class="q-text" id="qText"></div>
+    <div class="q-answers" id="qAnswers"></div>
+    <div class="q-progress" id="qProgress"></div>
+  </div>
+
+  <div class="view" id="viewReveal">
+    <div class="reveal-correct-badge" id="revealCorrectText"></div>
+    <div class="reveal-bars" id="revealBars"></div>
+  </div>
+
+  <div class="view" id="viewLeaderboard">
+    <div class="lb-title">Classifica</div>
+    <div class="lb-list" id="lbList"></div>
+  </div>
+
+  <div class="view" id="viewFinished">
+    <div class="lb-title">🏆 Classifica finale 🏆</div>
+    <div class="lb-list" id="finalList"></div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/screen.js"></script>
+</body>
+</html>

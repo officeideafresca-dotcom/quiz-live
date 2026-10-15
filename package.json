@@ -1,0 +1,17 @@
+{
+  "name": "quiz-live",
+  "version": "1.0.0",
+  "description": "App quiz dal vivo stile Kahoot: QR code per entrare, domande a tempo, classifica in diretta. Riutilizzabile per qualsiasi evento.",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "qrcode": "^1.5.3",
+    "socket.io": "^4.7.5"
+  }
+}
