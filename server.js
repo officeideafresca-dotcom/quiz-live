@@ -17,6 +17,7 @@ function freshState() {
     status: 'lobby', // lobby | question | reveal | leaderboard | finished
     quizTitle: 'Quiz',
     questions: [], // { text, type:'mc'|'tf', options:[...], correctIndex, timeLimitSec }
+    showLeaderboardAfterEachQuestion: true, // impostazione del quiz: classifica dopo ogni domanda o solo alla fine
     currentIndex: -1,
     currentStartedAt: null,
     currentAnswersCount: 0,
@@ -144,6 +145,7 @@ function initPayload() {
     status: state.status,
     quizTitle: state.quizTitle,
     questionCount: state.questions.length,
+    showLeaderboardAfterEachQuestion: state.showLeaderboardAfterEachQuestion,
     currentIndex: state.currentIndex,
     players: publicPlayerList(),
     question: state.status === 'question' ? publicQuestionForScreen(currentQuestion()) : null,
@@ -199,12 +201,10 @@ io.on('connection', (socket) => {
       case 'set-quiz': {
         state.quizTitle = String((payload && payload.title) || 'Quiz').slice(0, 80);
         state.questions = sanitizeQuestions(payload && payload.questions);
+        state.showLeaderboardAfterEachQuestion = !(payload && payload.showLeaderboardAfterEachQuestion === false);
         state.currentIndex = -1;
         state.status = 'lobby';
-        io.emit('init', {
-          status: state.status, quizTitle: state.quizTitle, questionCount: state.questions.length,
-          currentIndex: state.currentIndex, players: publicPlayerList(), question: null,
-        });
+        io.emit('init', initPayload());
         return;
       }
       case 'start-question': {
