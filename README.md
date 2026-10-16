@@ -50,9 +50,12 @@ su `/screen` sia su `/admin` prima di usarli — una pagina già aperta non si a
 
 Nel pannello `/admin`, sezione "Crea / modifica quiz":
 1. Scrivi il titolo del quiz
-2. Per ogni domanda: testo, tipo (Scelta multipla 2-4 opzioni, oppure Vero/Falso), segna con il
+2. Scegli **quando mostrare la classifica**: "Dopo ogni domanda" (più feedback frequente) o
+   "Solo alla fine" (tutta la suspense riservata al podio finale) — con questa seconda opzione
+   il pulsante "Mostra classifica" resta disattivato fino a "Termina partita"
+3. Per ogni domanda: testo, tipo (Scelta multipla 2-4 opzioni, oppure Vero/Falso), segna con il
    pallino quale opzione è quella corretta, imposta il tempo limite in secondi
-3. "+ Aggiungi domanda" per le successive, poi **"Salva quiz"**
+4. "+ Aggiungi domanda" per le successive, poi **"Salva quiz"**
 
 Durante l'evento: **"▶ Avvia prossima domanda"** fa partire la domanda successiva in coda
 (puoi ripeterlo quante volte vuoi, avanza automaticamente), **"Mostra risposta corretta"**

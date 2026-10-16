@@ -43,11 +43,29 @@
     el('stQuestion').textContent = state.questionCount ? `${state.currentIndex + 1}/${state.questionCount}` : '—';
     el('stPlayers').textContent = (state.players || []).length;
     el('stAnswers').textContent = state.status === 'question' ? `${state.answersCount || 0}` : '—';
+    updateLeaderboardButtonState();
+  }
+
+  // Se l'impostazione del quiz dice "solo alla fine", il pulsante manuale resta disattivato
+  // finché la partita non è terminata, per non rovinare la sorpresa tra una domanda e l'altra.
+  function updateLeaderboardButtonState() {
+    const btn = el('btnLeaderboard');
+    const showEachQuestion = !state || state.showLeaderboardAfterEachQuestion !== false;
+    const allowed = showEachQuestion || state.status === 'finished';
+    btn.disabled = !allowed;
+    btn.title = allowed ? '' : 'Impostazione quiz: classifica visibile solo a fine partita';
   }
 
   socket.on('init', (st) => {
-    state = { status: st.status, quizTitle: st.quizTitle, questionCount: st.questionCount, currentIndex: st.currentIndex, players: st.players || [] };
+    state = {
+      status: st.status, quizTitle: st.quizTitle, questionCount: st.questionCount,
+      currentIndex: st.currentIndex, players: st.players || [],
+      showLeaderboardAfterEachQuestion: st.showLeaderboardAfterEachQuestion,
+    };
     if (st.quizTitle) el('quizTitleInput').value = st.quizTitle;
+    if (st.showLeaderboardAfterEachQuestion === false) {
+      document.querySelector('input[name="leaderboardTiming"][value="end"]').checked = true;
+    }
     renderStatus();
   });
   socket.on('players:update', (p) => { if (state) { state.players = p.players; renderStatus(); } });
@@ -173,7 +191,8 @@
       questions.push({ text, type, options, correctIndex, timeLimitSec });
     }
     el('quizError').textContent = '';
-    sendAdmin('set-quiz', { title, questions });
+    const showLeaderboardAfterEachQuestion = document.querySelector('input[name="leaderboardTiming"]:checked').value === 'each';
+    sendAdmin('set-quiz', { title, questions, showLeaderboardAfterEachQuestion });
     alert(`Quiz salvato con ${questions.length} domande.`);
   });
 
