@@ -113,14 +113,22 @@ configurazione aggiuntiva qui: basta che l'altra app conosca l'URL pubblico e il
 
 ## Note tecniche
 
-- Stato in memoria (nessun database): pensato per una sessione di gioco, non per conservare
-  storico tra eventi diversi. Se vuoi tenere i risultati, scarica il CSV o il PDF prima di
-  premere Reset. **"Reset completo (nuova partita)" azzera solo giocatori e punteggi**: il
-  quiz che hai salvato (titolo, domande, traduzioni) resta intatto, pronto per un altro giro.
-  Quello che invece NON si può evitare è un riavvio vero e proprio del server — tipicamente
-  quando pubblichi un aggiornamento del codice (nuovo deploy): in quel caso sì che si perdono
-  partecipanti, punteggi **e** il quiz personalizzato, perché tutto torna alle 16 domande di
-  default scritte nel codice. Pubblica gli aggiornamenti prima dell'evento, non a metà.
+- **I risultati di una partita (giocatori, punteggi, risposte) vivono solo in memoria** —
+  pensati per una sessione di gioco, non per uno storico tra eventi diversi. Se vuoi tenerli,
+  scarica il CSV o il PDF (si scaricano già da soli quando premi "Termina partita").
+- **Il quiz che configuri (titolo, domande, traduzioni, lingua schermo) invece viene anche
+  salvato su un file su disco** (`data/quiz.json`, creato/aggiornato automaticamente a ogni
+  "Salva quiz") e ricaricato da lì quando il server si riavvia — es. dopo un crash o un
+  risveglio dallo standby del piano gratuito Render. "Reset completo (nuova partita)" azzera
+  solo giocatori e punteggi, non il quiz salvato.
+  **⚠️ Limite importante**: questo file sopravvive solo se il server riparte sullo stesso
+  disco. Un **vero nuovo deploy** (pubblichi un aggiornamento del codice) crea su Render — e
+  su molte altre piattaforme col piano gratuito — un disco completamente nuovo e vuoto: in
+  quel caso il file si perde comunque e si torna alle 16 domande di default scritte nel
+  codice. Per una garanzia vera a prova di deploy servirebbe un database esterno o un disco
+  persistente (piano a pagamento) — se per voi questo diventa importante per un evento reale,
+  è una cosa su cui vale la pena investire. Nel frattempo: pubblica gli aggiornamenti del
+  codice prima dell'evento, non a metà, e se lo fai ricrea subito il quiz dall'admin.
 - Fino a 300 giocatori e 50 domande per partita (limiti modificabili in `server.js`).
 - I giocatori si riconnettono automaticamente con lo stesso punteggio se ricaricano la pagina
   durante la stessa partita (l'identità resta salvata nel browser del telefono).

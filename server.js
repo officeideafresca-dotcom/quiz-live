@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const path = require('path');
@@ -11,6 +12,41 @@ const MAX_PLAYERS = 300;
 const MAX_QUESTIONS = 50;
 const DEFAULT_TIME_LIMIT = 20;
 const BASE_POINTS = 1000;
+
+// Il quiz configurato dall'admin (titolo, domande, lingua schermo) viene salvato qui su
+// disco ad ogni modifica, così un riavvio del server (crash, risveglio dallo standby) lo
+// ritrova invece di tornare alle domande di default. ATTENZIONE: su un deploy vero e proprio
+// (nuovo codice pubblicato) molte piattaforme — incluso il piano gratuito di Render — creano
+// un disco completamente nuovo e vuoto: in quel caso anche questo file va perso. Per una
+// garanzia reale servirebbe un database o un disco persistente (piano a pagamento).
+const DATA_DIR = path.join(__dirname, 'data');
+const QUIZ_FILE = path.join(DATA_DIR, 'quiz.json');
+
+function loadSavedQuiz() {
+  try {
+    const raw = fs.readFileSync(QUIZ_FILE, 'utf8');
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data.questions) || !data.questions.length) return null;
+    return data;
+  } catch (e) {
+    return null; // nessun file salvato, o illeggibile: si parte dal quiz di default
+  }
+}
+
+function saveQuizToDisk() {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    const data = {
+      title: state.quizTitle,
+      questions: state.questions,
+      showLeaderboardAfterEachQuestion: state.showLeaderboardAfterEachQuestion,
+      screenLang: state.screenLang,
+    };
+    fs.writeFileSync(QUIZ_FILE, JSON.stringify(data));
+  } catch (e) {
+    console.error('Impossibile salvare il quiz su disco:', e.message);
+  }
+}
 
 const QUIZ_LANGS = ['it', 'de', 'fr', 'es', 'en'];
 const DEFAULT_SCREEN_LANG = 'en'; // lingua di partenza del maxischermo, cambiabile dal pannello admin
@@ -201,23 +237,33 @@ const DEFAULT_QUIZ = {
   ],
 };
 
+function defaultQuestions() {
+  return DEFAULT_QUIZ.questions.map((q) => ({
+    type: q.type,
+    correctIndex: q.correctIndex,
+    correctIndexes: q.correctIndexes,
+    timeLimitSec: q.timeLimitSec,
+    translations: QUIZ_LANGS.reduce((acc, l) => {
+      const t = q.translations[l] || q.translations.it;
+      acc[l] = { text: t.text, options: [...t.options] };
+      return acc;
+    }, {}),
+  }));
+}
+
 function freshState() {
+  // Se è stato salvato un quiz su disco da una sessione precedente lo ricarichiamo (passandolo
+  // comunque da sanitizeQuestions, la stessa validazione usata quando l'admin salva), altrimenti
+  // si parte dalle 16 domande di default scritte nel codice.
+  const saved = loadSavedQuiz();
+  const savedQuestions = saved ? sanitizeQuestions(saved.questions) : null;
+  const useSaved = !!(savedQuestions && savedQuestions.length);
   return {
     status: 'lobby', // lobby | question | reveal | leaderboard | finished
-    screenLang: DEFAULT_SCREEN_LANG, // lingua del maxischermo, impostabile dal pannello admin
-    quizTitle: DEFAULT_QUIZ.title.it,
-    questions: DEFAULT_QUIZ.questions.map((q) => ({
-      type: q.type,
-      correctIndex: q.correctIndex,
-      correctIndexes: q.correctIndexes,
-      timeLimitSec: q.timeLimitSec,
-      translations: QUIZ_LANGS.reduce((acc, l) => {
-        const t = q.translations[l] || q.translations.it;
-        acc[l] = { text: t.text, options: [...t.options] };
-        return acc;
-      }, {}),
-    })),
-    showLeaderboardAfterEachQuestion: true, // impostazione del quiz: classifica dopo ogni domanda o solo alla fine
+    screenLang: (saved && QUIZ_LANGS.includes(saved.screenLang)) ? saved.screenLang : DEFAULT_SCREEN_LANG,
+    quizTitle: useSaved ? String(saved.title || 'Quiz').slice(0, 80) : DEFAULT_QUIZ.title.it,
+    questions: useSaved ? savedQuestions : defaultQuestions(),
+    showLeaderboardAfterEachQuestion: useSaved ? saved.showLeaderboardAfterEachQuestion !== false : true,
     currentIndex: -1,
     currentStartedAt: null,
     currentAnswersCount: 0,
@@ -545,6 +591,7 @@ io.on('connection', (socket) => {
         const lang = payload && payload.lang;
         if (!QUIZ_LANGS.includes(lang)) return;
         state.screenLang = lang;
+        saveQuizToDisk();
         // Evento dedicato (non un 'init' completo): aggiorna solo il testo mostrato, senza
         // toccare il timer della domanda eventualmente già in corso.
         io.emit('screen-lang:update', {
@@ -559,6 +606,7 @@ io.on('connection', (socket) => {
         state.showLeaderboardAfterEachQuestion = !(payload && payload.showLeaderboardAfterEachQuestion === false);
         state.currentIndex = -1;
         state.status = 'lobby';
+        saveQuizToDisk();
         io.emit('init', initPayload());
         return;
       }
