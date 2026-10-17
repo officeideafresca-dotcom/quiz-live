@@ -20,6 +20,7 @@ window.I18N = {
     finishedTitle: 'Quiz finito!',
     finalRankTemplate: '{rank}° posto · {score} punti',
     pointsSuffix: 'punti',
+    multiHintText: 'Seleziona tutte le risposte corrette',
   },
   de: {
     brand: 'Quiz Live',
@@ -40,6 +41,7 @@ window.I18N = {
     finishedTitle: 'Quiz beendet!',
     finalRankTemplate: '{rank}. Platz · {score} Punkte',
     pointsSuffix: 'Punkte',
+    multiHintText: 'Wähle alle richtigen Antworten aus',
   },
   fr: {
     brand: 'Quiz Live',
@@ -60,6 +62,7 @@ window.I18N = {
     finishedTitle: 'Quiz terminé !',
     finalRankTemplate: '{rank}e place · {score} points',
     pointsSuffix: 'points',
+    multiHintText: 'Sélectionnez toutes les bonnes réponses',
   },
   es: {
     brand: 'Quiz Live',
@@ -80,6 +83,7 @@ window.I18N = {
     finishedTitle: '¡Quiz terminado!',
     finalRankTemplate: '{rank}º puesto · {score} puntos',
     pointsSuffix: 'puntos',
+    multiHintText: 'Selecciona todas las respuestas correctas',
   },
   en: {
     brand: 'Quiz Live',
@@ -100,6 +104,7 @@ window.I18N = {
     finishedTitle: 'Quiz finished!',
     finalRankTemplate: '{rank} place · {score} points',
     pointsSuffix: 'points',
+    multiHintText: 'Select all the correct answers',
   },
 };
 

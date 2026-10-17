@@ -116,9 +116,11 @@
       <label>Testo della domanda</label>
       <input type="text" class="q-text" placeholder="Es. Qual è la capitale della Francia?" maxlength="200" value="${escapeAttr(d.text)}" />
       <div class="type-toggle">
-        <label><input type="radio" name="type-${id}" value="mc" ${d.type === 'mc' ? 'checked' : ''} /> Scelta multipla</label>
+        <label><input type="radio" name="type-${id}" value="mc" ${d.type === 'mc' ? 'checked' : ''} /> Scelta singola</label>
+        <label><input type="radio" name="type-${id}" value="multi" ${d.type === 'multi' ? 'checked' : ''} /> Selezione multipla</label>
         <label><input type="radio" name="type-${id}" value="tf" ${d.type === 'tf' ? 'checked' : ''} /> Vero / Falso</label>
       </div>
+      <div class="type-hint" data-role="type-hint"></div>
       <div class="options-box" data-role="options"></div>
       <button class="btn-secondary" data-action="add-option" style="display:none;">+ Opzione</button>
       <label>Tempo per rispondere (secondi)</label>
@@ -133,35 +135,40 @@
       if (opts.length < 4) { opts.push(''); renderOptions(card, id, opts); }
     });
 
-    renderOptions(card, id, d.type === 'mc' ? d.options : null, d.correctIndex);
+    const presetCorrect = d.type === 'multi' ? (d.correctIndexes || [0]) : [d.correctIndex ?? 0];
+    renderOptions(card, id, d.type === 'tf' ? null : d.options, presetCorrect);
   }
 
   function getOptionValues(card) {
     return Array.from(card.querySelectorAll('.opt-text')).map((i) => i.value);
   }
 
-  function renderOptions(card, id, presetOptions, presetCorrect) {
+  function renderOptions(card, id, presetOptions, presetCorrectArr) {
     const type = card.querySelector(`input[name="type-${id}"]:checked`).value;
     const box = card.querySelector('[data-role="options"]');
     const addBtn = card.querySelector('[data-action="add-option"]');
+    const hint = card.querySelector('[data-role="type-hint"]');
+    const correctArr = Array.isArray(presetCorrectArr) ? presetCorrectArr : [presetCorrectArr || 0];
     box.innerHTML = '';
+    hint.textContent = type === 'multi' ? 'Segna con la spunta tutte le risposte corrette (2 o più).' : '';
     if (type === 'tf') {
       addBtn.style.display = 'none';
       ['Vero', 'Falso'].forEach((label, i) => {
         const row = document.createElement('div');
         row.className = 'option-row';
-        row.innerHTML = `<input type="radio" name="correct-${id}" value="${i}" ${(presetCorrect || 0) === i ? 'checked' : ''} /><span>${label}</span>`;
+        row.innerHTML = `<input type="radio" name="correct-${id}" value="${i}" ${correctArr.includes(i) ? 'checked' : ''} /><span>${label}</span>`;
         box.appendChild(row);
       });
       return;
     }
     addBtn.style.display = 'block';
+    const inputType = type === 'multi' ? 'checkbox' : 'radio';
     const opts = presetOptions && presetOptions.length ? presetOptions : ['', ''];
     opts.forEach((val, i) => {
       const row = document.createElement('div');
       row.className = 'option-row';
       row.innerHTML = `
-        <input type="radio" name="correct-${id}" value="${i}" ${(presetCorrect || 0) === i ? 'checked' : ''} />
+        <input type="${inputType}" name="correct-${id}" value="${i}" ${correctArr.includes(i) ? 'checked' : ''} />
         <input type="text" class="opt-text" placeholder="Opzione ${i + 1}" maxlength="80" value="${escapeAttr(val)}" style="flex:1;" />
         ${i >= 2 ? '<button class="btn-secondary" data-action="remove-option" style="width:auto; padding:6px 10px;">✕</button>' : ''}
       `;
@@ -191,17 +198,23 @@
       const text = card.querySelector('.q-text').value.trim();
       const type = card.querySelector(`input[name="type-${id}"]:checked`).value;
       const timeLimitSec = Number(card.querySelector('.q-time').value) || 20;
-      const correctRadio = card.querySelector(`input[name="correct-${id}"]:checked`);
-      const correctIndex = correctRadio ? Number(correctRadio.value) : 0;
       if (!text) { el('quizError').textContent = 'Ogni domanda deve avere un testo'; return; }
       let options;
       if (type === 'tf') {
         options = ['Vero', 'Falso'];
       } else {
         options = getOptionValues(card).map((v) => v.trim());
-        if (options.filter((o) => o).length < 2) { el('quizError').textContent = 'Ogni domanda a scelta multipla deve avere almeno 2 opzioni'; return; }
+        if (options.filter((o) => o).length < 2) { el('quizError').textContent = 'Ogni domanda deve avere almeno 2 opzioni'; return; }
       }
-      questions.push({ text, type, options, correctIndex, timeLimitSec });
+      if (type === 'multi') {
+        const correctIndexes = Array.from(card.querySelectorAll(`input[name="correct-${id}"]:checked`)).map((i) => Number(i.value));
+        if (!correctIndexes.length) { el('quizError').textContent = 'Segna almeno una risposta corretta in ogni domanda a selezione multipla'; return; }
+        questions.push({ text, type, options, correctIndexes, timeLimitSec });
+      } else {
+        const correctRadio = card.querySelector(`input[name="correct-${id}"]:checked`);
+        const correctIndex = correctRadio ? Number(correctRadio.value) : 0;
+        questions.push({ text, type, options, correctIndex, timeLimitSec });
+      }
     }
     el('quizError').textContent = '';
     const showLeaderboardAfterEachQuestion = document.querySelector('input[name="leaderboardTiming"]:checked').value === 'each';

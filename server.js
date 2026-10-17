@@ -85,15 +85,22 @@ function computeScore(correct, elapsedMs, timeLimitSec) {
 function sanitizeQuestions(raw) {
   if (!Array.isArray(raw)) return [];
   return raw.slice(0, MAX_QUESTIONS).map((q) => {
-    const type = q.type === 'tf' ? 'tf' : 'mc';
+    const type = q.type === 'tf' ? 'tf' : (q.type === 'multi' ? 'multi' : 'mc');
     let options = type === 'tf' ? ['Vero', 'Falso'] : (Array.isArray(q.options) ? q.options.map((o) => String(o || '').slice(0, 80)).slice(0, 4) : []);
     options = options.filter((o) => o.length > 0);
-    if (type === 'mc' && options.length < 2) return null;
-    let correctIndex = Number.isInteger(q.correctIndex) ? q.correctIndex : 0;
-    if (correctIndex < 0 || correctIndex >= options.length) correctIndex = 0;
+    if (type !== 'tf' && options.length < 2) return null;
     const timeLimitSec = Math.min(120, Math.max(5, Number(q.timeLimitSec) || DEFAULT_TIME_LIMIT));
     const text = String(q.text || '').slice(0, 200).trim();
     if (!text) return null;
+    if (type === 'multi') {
+      let correctIndexes = Array.isArray(q.correctIndexes)
+        ? [...new Set(q.correctIndexes.filter((i) => Number.isInteger(i) && i >= 0 && i < options.length))]
+        : [];
+      if (!correctIndexes.length) correctIndexes = [0];
+      return { text, type, options, correctIndexes, timeLimitSec };
+    }
+    let correctIndex = Number.isInteger(q.correctIndex) ? q.correctIndex : 0;
+    if (correctIndex < 0 || correctIndex >= options.length) correctIndex = 0;
     return { text, type, options, correctIndex, timeLimitSec };
   }).filter(Boolean);
 }
@@ -167,6 +174,27 @@ app.get('/api/qr', async (req, res) => {
   }
 });
 
+app.get('/api/results', (req, res) => {
+  // Endpoint usato dal server di Idea Fresca 25 Anni per leggere in automatico il
+  // riepilogo del quiz (collegamento tecnico tra le due app). Protetto dal PIN admin
+  // di questa app, passato come query string: non va mai chiamato da una pagina pubblica.
+  if (String(req.query.pin || '') !== ADMIN_PIN) {
+    res.status(401).json({ error: 'bad_pin' });
+    return;
+  }
+  const players = Object.values(state.players)
+    .map((p) => ({ nickname: p.nickname, score: p.score, history: p.history }))
+    .sort((a, b) => b.score - a.score);
+  const questions = state.questions.map((q) => ({ text: q.text, options: q.options, correctIndex: q.correctIndex, correctIndexes: q.correctIndexes }));
+  res.json({
+    quizTitle: state.quizTitle,
+    status: state.status,
+    playerCount: players.length,
+    questions,
+    players,
+  });
+});
+
 function initPayload() {
   return {
     status: state.status,
@@ -202,18 +230,31 @@ io.on('connection', (socket) => {
     io.emit('players:update', { players: publicPlayerList() });
   });
 
-  socket.on('submit-answer', ({ playerId, questionIndex, optionIndex }) => {
+  socket.on('submit-answer', ({ playerId, questionIndex, optionIndex, optionIndexes }) => {
     if (state.status !== 'question' || questionIndex !== state.currentIndex) return;
     const player = state.players[playerId];
     const q = currentQuestion();
     if (!player || !q) return;
     if (player.answered[questionIndex] != null) return; // già risposto
     const elapsedMs = Date.now() - (state.currentStartedAt || Date.now());
-    const correct = optionIndex === q.correctIndex;
-    const points = computeScore(correct, elapsedMs, q.timeLimitSec);
+    let correct, points, chosenIndexes;
+    if (q.type === 'multi') {
+      // Selezione multipla: il telefono invia la risposta solo allo scadere del tempo (nessun
+      // bonus di velocità), corretta solo se l'insieme scelto coincide esattamente con quello giusto.
+      chosenIndexes = Array.isArray(optionIndexes)
+        ? [...new Set(optionIndexes.filter((i) => Number.isInteger(i) && i >= 0 && i < q.options.length))]
+        : [];
+      const correctSet = new Set(q.correctIndexes);
+      correct = chosenIndexes.length === correctSet.size && chosenIndexes.every((i) => correctSet.has(i));
+      points = correct ? BASE_POINTS : 0;
+    } else {
+      chosenIndexes = null;
+      correct = optionIndex === q.correctIndex;
+      points = computeScore(correct, elapsedMs, q.timeLimitSec);
+    }
     player.answered[questionIndex] = true;
     player.score += points;
-    player.history.push({ questionIndex, optionIndex, correct, points, elapsedMs });
+    player.history.push({ questionIndex, optionIndex: q.type === 'multi' ? null : optionIndex, optionIndexes: chosenIndexes, correct, points, elapsedMs });
     state.currentAnswersCount++;
     socket.emit('answer:ack', { correct: null, locked: true }); // conferma "ricevuta", non svela se è giusta
     io.emit('answers:count', { count: state.currentAnswersCount, total: Object.keys(state.players).length });
@@ -257,11 +298,16 @@ io.on('connection', (socket) => {
         let noAnswer = 0;
         Object.values(state.players).forEach((p) => {
           const entry = p.history.find((h) => h.questionIndex === state.currentIndex);
-          if (entry) counts[entry.optionIndex] = (counts[entry.optionIndex] || 0) + 1;
-          else noAnswer++;
+          if (!entry) { noAnswer++; return; }
+          if (q.type === 'multi') {
+            (entry.optionIndexes || []).forEach((i) => { counts[i] = (counts[i] || 0) + 1; });
+          } else {
+            counts[entry.optionIndex] = (counts[entry.optionIndex] || 0) + 1;
+          }
         });
         io.emit('question:reveal', {
-          correctIndex: q.correctIndex,
+          correctIndex: q.type === 'multi' ? null : q.correctIndex,
+          correctIndexes: q.type === 'multi' ? q.correctIndexes : null,
           options: q.options,
           counts,
           noAnswer,
@@ -301,7 +347,7 @@ io.on('connection', (socket) => {
           score: p.score,
           history: p.history,
         }));
-        const questions = state.questions.map((q) => ({ text: q.text, options: q.options, correctIndex: q.correctIndex }));
+        const questions = state.questions.map((q) => ({ text: q.text, options: q.options, correctIndex: q.correctIndex, correctIndexes: q.correctIndexes }));
         socket.emit('admin:export-data', { quizTitle: state.quizTitle, questions, players });
         return;
       }

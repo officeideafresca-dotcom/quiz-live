@@ -60,6 +60,7 @@
 
   function renderQuestion(q, startedAt) {
     el('qText').textContent = q.text || '';
+    el('qHint').textContent = q.type === 'multi' ? 'Selezione multipla: possono essere corrette più risposte' : '';
     const box = el('qAnswers');
     box.innerHTML = '';
     (q.options || []).forEach((opt, i) => {
@@ -88,7 +89,12 @@
 
   socket.on('question:reveal', (payload) => {
     if (qTimerInterval) { clearInterval(qTimerInterval); qTimerInterval = null; }
-    el('revealCorrectText').textContent = `Risposta corretta: ${SHAPES[payload.correctIndex] || ''} ${payload.options[payload.correctIndex] || ''}`;
+    const correctSet = new Set(payload.correctIndexes != null ? payload.correctIndexes : [payload.correctIndex]);
+    const correctLabel = payload.options
+      .map((opt, i) => (correctSet.has(i) ? `${SHAPES[i] || ''} ${opt}` : null))
+      .filter(Boolean)
+      .join('  ·  ');
+    el('revealCorrectText').textContent = `Risposta corretta: ${correctLabel}`;
     const bars = el('revealBars');
     bars.innerHTML = '';
     const maxCount = Math.max(1, ...payload.counts);
@@ -98,7 +104,7 @@
       const row = document.createElement('div');
       row.className = 'reveal-bar-row';
       row.innerHTML = `
-        <div class="reveal-bar-label">${SHAPES[i] || ''} ${escapeHtml(opt)}${i === payload.correctIndex ? ' ✓' : ''}</div>
+        <div class="reveal-bar-label">${SHAPES[i] || ''} ${escapeHtml(opt)}${correctSet.has(i) ? ' ✓' : ''}</div>
         <div class="reveal-bar-track"><div class="reveal-bar-fill c${i}" style="width:0%"></div></div>
         <div class="reveal-bar-count">${count}</div>
       `;

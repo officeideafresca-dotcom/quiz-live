@@ -45,8 +45,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .question-card .qhead { display: flex; justify-content: space-between; align-items: center; }
 .question-card .qhead button { width: auto; padding: 6px 10px; font-size: 0.75rem; }
 .option-row { display: flex; gap: 8px; align-items: center; }
-.option-row input[type="radio"] { width: 18px; height: 18px; }
-.type-toggle { display: flex; gap: 8px; }
+.option-row input[type="radio"], .option-row input[type="checkbox"] { width: 18px; height: 18px; flex-shrink: 0; }
+.type-toggle { display: flex; gap: 8px; flex-wrap: wrap; }
 .type-toggle label { display: flex; align-items: center; gap: 4px; font-weight: 400; }
+.type-hint { font-size: 0.74rem; opacity: 0.7; margin-top: -4px; }
 
 .lock-hint { font-size: 0.76rem; opacity: 0.6; text-align: center; }

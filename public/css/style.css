@@ -147,6 +147,9 @@ input[type="text"]:focus { outline: 3px solid var(--gold); }
 .answer-tile.c1 { background: var(--blue); }
 .answer-tile.c2 { background: var(--yellow); }
 .answer-tile.c3 { background: var(--green); }
+.answer-tile.selected { box-shadow: 0 0 0 4px var(--gold), 0 8px 0 rgba(0,0,0,0.25); transform: translateY(2px); }
+
+.multi-hint { font-size: 0.85rem; font-weight: 700; color: var(--gold); opacity: 0.9; }
 
 .locked-box { font-size: 1.1rem; font-weight: 700; }
 

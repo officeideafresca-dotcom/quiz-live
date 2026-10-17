@@ -8,9 +8,12 @@
   let nickname = localStorage.getItem('ql_nickname') || '';
   let currentQuestionIndex = -1;
   let myLastChoice = null;
+  let myLastChoices = null; // per le domande a selezione multipla
   let hasAnsweredCurrent = false;
   let questionTimerInterval = null;
   let questionDeadline = null;
+  let multiSelected = null; // Set delle opzioni toccate, solo per il tipo 'multi'
+  let multiSubmitted = false;
   let lastReveal = null; // riapplicato se si cambia lingua mentre il reveal è a schermo
 
   function T(key) { return window.t(lang, key); }
@@ -55,6 +58,7 @@
     el('lockedSubtitleText').textContent = T('lockedSubtitle');
     el('leaderboardTitleText').textContent = T('leaderboardTitle');
     el('finishedTitleText').textContent = T('finishedTitle');
+    el('multiHint').textContent = T('multiHintText');
     if (lastReveal) renderReveal(lastReveal); // ri-traduce il reveal se già visibile
   }
 
@@ -104,6 +108,7 @@
   socket.on('question:start', (payload) => {
     hasAnsweredCurrent = false;
     myLastChoice = null;
+    myLastChoices = null;
     lastReveal = null;
     startQuestionUI(payload.player, payload.startedAt);
   });
@@ -114,13 +119,17 @@
     const grid = el('answerGrid');
     grid.innerHTML = '';
     const shapes = ['▲', '◆', '●', '■'];
+    const isMulti = q.type === 'multi';
+    multiSelected = isMulti ? new Set() : null;
+    multiSubmitted = false;
     for (let i = 0; i < optionCount; i++) {
       const b = document.createElement('button');
       b.className = `answer-tile c${i}`;
       b.textContent = shapes[i] || '?';
-      b.onclick = () => submitAnswer(i);
+      b.onclick = () => (isMulti ? toggleMultiOption(b, i) : submitAnswer(i));
       grid.appendChild(b);
     }
+    el('multiHint').style.display = isMulti ? 'block' : 'none';
     questionDeadline = (startedAt || Date.now()) + q.timeLimitSec * 1000;
     showPanel('panelQuestion');
     tickTimer();
@@ -128,12 +137,28 @@
     questionTimerInterval = setInterval(tickTimer, 250);
   }
 
+  // Selezione multipla: ogni tocco accende/spegne l'opzione, nessun invio immediato.
+  // La risposta (anche se vuota) parte da sola allo scadere del tempo — niente bonus di velocità.
+  function toggleMultiOption(btn, i) {
+    if (multiSubmitted) return;
+    if (multiSelected.has(i)) { multiSelected.delete(i); btn.classList.remove('selected'); }
+    else { multiSelected.add(i); btn.classList.add('selected'); }
+  }
+
+  function submitMultiAnswer() {
+    if (multiSubmitted) return;
+    multiSubmitted = true;
+    myLastChoices = Array.from(multiSelected || []);
+    socket.emit('submit-answer', { playerId, questionIndex: currentQuestionIndex, optionIndexes: myLastChoices });
+    showPanel('panelLocked');
+  }
+
   function tickTimer() {
     const remaining = Math.max(0, Math.round((questionDeadline - Date.now()) / 1000));
     el('questionTimer').textContent = remaining;
-    if (remaining <= 0 && questionTimerInterval) {
-      clearInterval(questionTimerInterval);
-      questionTimerInterval = null;
+    if (remaining <= 0) {
+      if (questionTimerInterval) { clearInterval(questionTimerInterval); questionTimerInterval = null; }
+      if (multiSelected && !multiSubmitted) submitMultiAnswer();
     }
   }
 
@@ -155,9 +180,20 @@
   function renderReveal(payload) {
     const idx = payload.players.findIndex((p) => p.id === playerId);
     const me = idx >= 0 ? payload.players[idx] : null;
-    const correct = myLastChoice === payload.correctIndex;
-    el('revealIcon').textContent = correct ? '✅' : (myLastChoice == null ? '⌛' : '❌');
-    el('revealText').textContent = myLastChoice == null ? T('resultTimeout') : (correct ? T('resultCorrect') : T('resultWrong'));
+    let correct, noAnswer;
+    if (payload.correctIndexes) {
+      // Selezione multipla: l'invio parte sempre da sola allo scadere del tempo, quindi non
+      // esiste un vero "tempo scaduto senza risposta" come nelle domande a scelta singola.
+      const chosen = myLastChoices || [];
+      const correctSet = payload.correctIndexes;
+      correct = chosen.length === correctSet.length && correctSet.every((i) => chosen.includes(i));
+      noAnswer = false;
+    } else {
+      correct = myLastChoice === payload.correctIndex;
+      noAnswer = myLastChoice == null;
+    }
+    el('revealIcon').textContent = correct ? '✅' : (noAnswer ? '⌛' : '❌');
+    el('revealText').textContent = noAnswer ? T('resultTimeout') : (correct ? T('resultCorrect') : T('resultWrong'));
     el('revealText').className = correct ? 'result-correct' : 'result-wrong';
     if (me) {
       el('revealPoints').textContent = `${T('totalScoreLabel')}: ${me.score}`;
