@@ -62,7 +62,7 @@
   // lingua del maxischermo a metà di una domanda già partita, senza toccare il conto alla rovescia.
   function renderQuestionContent(q) {
     el('qText').textContent = q.text || '';
-    const hints = { multi: 'Selezione multipla: possono essere corrette più risposte', mc: 'Scelta singola: una sola risposta corretta', tf: 'Vero o Falso' };
+    const hints = { multi: 'Selezione multipla: puoi scegliere più risposte', mc: 'Scelta singola: una sola risposta corretta', tf: 'Vero o Falso' };
     el('qHint').textContent = hints[q.type] || '';
     const box = el('qAnswers');
     box.innerHTML = '';

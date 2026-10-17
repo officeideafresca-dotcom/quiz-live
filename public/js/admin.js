@@ -335,10 +335,13 @@
     alert('Impossibile salvare: ' + msg);
   }
 
-  // ---------- Export CSV ----------
-  el('btnExport').addEventListener('click', () => sendAdmin('export-data'));
+  // ---------- Export CSV / PDF ----------
+  let pendingExportFormat = 'csv';
+  el('btnExport').addEventListener('click', () => { pendingExportFormat = 'csv'; sendAdmin('export-data'); });
+  el('btnExportPdf').addEventListener('click', () => { pendingExportFormat = 'pdf'; sendAdmin('export-data'); });
 
   socket.on('admin:export-data', (data) => {
+    if (pendingExportFormat === 'pdf') { downloadAdminSummaryPdf(data); return; }
     const rows = [];
     rows.push(['Nickname', 'Punteggio totale', ...data.questions.map((q, i) => `D${i + 1}: ${q.text}`)]);
     data.players
@@ -366,5 +369,72 @@
   function csvEscape(v) {
     const s = String(v == null ? '' : v);
     return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  // Quante persone hanno scelto ciascuna opzione, domanda per domanda — stesso calcolo usato
+  // per il grafico del riepilogo su Idea Fresca, qui ripetuto lato admin per il PDF.
+  function computeOptionCounts(questions, players) {
+    return questions.map((q, i) => {
+      const counts = new Array(q.options.length).fill(0);
+      let answered = 0;
+      players.forEach((p) => {
+        const h = p.history.find((x) => x.questionIndex === i);
+        if (!h) return;
+        answered++;
+        if (Array.isArray(h.optionIndexes)) {
+          h.optionIndexes.forEach((idx) => { if (counts[idx] != null) counts[idx]++; });
+        } else if (Number.isInteger(h.optionIndex) && counts[h.optionIndex] != null) {
+          counts[h.optionIndex]++;
+        }
+      });
+      return { counts, answered };
+    });
+  }
+
+  function downloadAdminSummaryPdf(data) {
+    if (!window.jspdf) { alert('PDF non disponibile, riprova in un momento'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let y = 20;
+    const ensureSpace = () => { if (y > pageHeight - 20) { doc.addPage(); y = 20; } };
+    const writeLine = (text, size, bold) => {
+      doc.setFontSize(size || 11);
+      doc.setFont(undefined, bold ? 'bold' : 'normal');
+      doc.splitTextToSize(text, pageWidth - margin * 2).forEach((line) => {
+        ensureSpace();
+        doc.text(line, margin, y);
+        y += 7;
+      });
+    };
+
+    writeLine(data.quizTitle || 'Quiz', 18, true);
+    writeLine(`Riepilogo generato il ${new Date().toLocaleString('it-IT')}`, 9);
+    y += 4;
+
+    writeLine('Dettaglio per domanda', 14, true);
+    const stats = computeOptionCounts(data.questions, data.players);
+    data.questions.forEach((q, i) => {
+      y += 2;
+      ensureSpace();
+      writeLine(`${i + 1}. ${q.text}`, 12, true);
+      const { counts, answered } = stats[i];
+      const maxCount = Math.max(1, ...counts);
+      const isMultiQ = Array.isArray(q.correctIndexes);
+      const correctSet = new Set(isMultiQ ? [] : (Number.isInteger(q.correctIndex) ? [q.correctIndex] : []));
+      q.options.forEach((opt, oi) => {
+        const count = counts[oi] || 0;
+        const barLen = Math.round((count / maxCount) * 20);
+        const bar = '█'.repeat(barLen) + '░'.repeat(20 - barLen);
+        const mark = correctSet.has(oi) ? ' ✓' : '';
+        writeLine(`   ${bar}  ${count}  ${opt}${mark}`, 10);
+      });
+      writeLine(`   Risposte ricevute: ${answered}/${data.players.length}`, 9);
+    });
+
+    const safeTitle = (data.quizTitle || 'quiz').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    doc.save(`${safeTitle}-riepilogo-admin.pdf`);
   }
 })();

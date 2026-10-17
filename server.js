@@ -266,6 +266,42 @@ function publicQuestionForPlayer(q) {
   };
 }
 
+// Riepilogo personale di un giocatore (tutte le domande, con la sua risposta e il
+// risultato), usato per il PDF scaricabile a fine partita. Rivela anche le risposte
+// corrette: va bene solo perché la partita è già finita (controllato dal chiamante).
+function buildMySummary(playerId) {
+  const player = state.players[playerId];
+  if (!player) return null;
+  const items = state.questions.map((q, i) => {
+    const h = player.history.find((x) => x.questionIndex === i);
+    const textByLang = {};
+    const optionsByLang = {};
+    QUIZ_LANGS.forEach((l) => {
+      const tr = q.translations[l] || q.translations.it;
+      textByLang[l] = tr.text;
+      optionsByLang[l] = tr.options;
+    });
+    return {
+      textByLang,
+      optionsByLang,
+      type: q.type,
+      correctIndex: q.type === 'multi' ? null : q.correctIndex,
+      correctIndexes: q.type === 'multi' ? q.correctIndexes : null,
+      myOptionIndex: h ? h.optionIndex : null,
+      myOptionIndexes: h ? h.optionIndexes : null,
+      answered: !!h,
+      correct: h ? h.correct : false,
+      points: h ? h.points : 0,
+    };
+  });
+  return {
+    quizTitle: state.quizTitle,
+    nickname: player.nickname,
+    totalScore: player.score,
+    items,
+  };
+}
+
 function computeScore(correct, elapsedMs, timeLimitSec) {
   if (!correct) return 0;
   const timeLimitMs = timeLimitSec * 1000;
@@ -356,7 +392,7 @@ const io = new Server(server, { maxHttpBufferSize: 2 * 1024 * 1024 });
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+    "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; " +
       "img-src 'self' data: blob:; connect-src 'self' ws: wss:; " +
       "base-uri 'self'; object-src 'none'; frame-ancestors 'self';"
   );
@@ -486,6 +522,17 @@ io.on('connection', (socket) => {
     state.currentAnswersCount++;
     socket.emit('answer:ack', { correct: null, locked: true }); // conferma "ricevuta", non svela se è giusta
     io.emit('answers:count', { count: state.currentAnswersCount, total: Object.keys(state.players).length });
+  });
+
+  // Riepilogo personale per il PDF scaricabile dal proprio telefono: lo diamo solo a
+  // partita finita, altrimenti un partecipante potrebbe scoprire in anticipo le risposte
+  // corrette delle domande non ancora fatte.
+  socket.on('request-my-summary', () => {
+    if (state.status !== 'finished') return;
+    const playerId = socket.data.playerId;
+    if (!playerId) return;
+    const summary = buildMySummary(playerId);
+    if (summary) socket.emit('my-summary', summary);
   });
 
   socket.on('admin', ({ pin, action, payload }) => {

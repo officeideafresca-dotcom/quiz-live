@@ -19,9 +19,13 @@ maxischermo. **Riutilizzabile per qualsiasi evento** — non è legata a Idea Fr
 - **Pannello di regia** (`/admin`): protetto da PIN, da aprire sul tuo telefono/laptop
   personale. Da qui crei il quiz (titolo + domande, con tempo limite personalizzabile per
   ciascuna), controlli il ritmo del gioco (avvia domanda → mostra risposta → mostra classifica
-  → ripeti → termina), e **scarichi i risultati completi in CSV** (punteggio e risposta data da
-  ogni partecipante per ogni domanda) — senza nessun paywall, a differenza di Kahoot/Quizizz
-  dove l'export è spesso bloccato dietro un piano a pagamento.
+  → ripeti → termina), e **scarichi i risultati** in CSV o in un **riepilogo PDF** con il
+  dettaglio di ogni domanda (quante persone hanno scelto ciascuna opzione) — senza nessun
+  paywall, a differenza di Kahoot/Quizizz dove l'export è spesso bloccato dietro un piano a
+  pagamento.
+- **A fine partita**, ogni partecipante può scaricare dal proprio telefono un **PDF personale**
+  con tutte le domande, la propria risposta e il risultato — un tocco su "Scarica il tuo
+  riepilogo (PDF)" nella schermata finale.
 
 ### Tre tipi di domanda
 
@@ -108,7 +112,12 @@ configurazione aggiuntiva qui: basta che l'altra app conosca l'URL pubblico e il
 ## Note tecniche
 
 - Stato in memoria (nessun database): pensato per una sessione di gioco, non per conservare
-  storico tra eventi diversi. Se vuoi tenere i risultati, scarica il CSV prima di premere Reset.
+  storico tra eventi diversi. Se vuoi tenere i risultati, scarica il CSV o il PDF prima di
+  premere Reset — e soprattutto prima di un nuovo deploy: pubblicare un aggiornamento riavvia
+  il server e azzera partecipanti e punteggi della sessione in corso.
 - Fino a 300 giocatori e 50 domande per partita (limiti modificabili in `server.js`).
 - I giocatori si riconnettono automaticamente con lo stesso punteggio se ricaricano la pagina
   durante la stessa partita (l'identità resta salvata nel browser del telefono).
+- I PDF (personale e admin) sono generati nel browser con la libreria [jsPDF](https://github.com/parallax/jsPDF),
+  caricata da cdnjs.cloudflare.com — l'unico script esterno ammesso dalla Content-Security-Policy
+  del sito, tutto il resto resta servito dal server stesso.

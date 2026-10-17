@@ -66,11 +66,13 @@
     <h2 id="finishedTitleText">Quiz finito!</h2>
     <div class="nickname-tag" id="finalRank">—</div>
     <div class="rank-list" id="finalList" style="margin-top:14px;"></div>
+    <button class="btn gold" id="downloadSummaryBtn" style="display:none; margin-top:14px;">Scarica il tuo riepilogo (PDF)</button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/i18n.js"></script>
 <script src="/js/participant.js"></script>

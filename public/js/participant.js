@@ -16,6 +16,7 @@
   let multiSubmitted = false;
   let lastReveal = null; // riapplicato se si cambia lingua mentre il reveal è a schermo
   let currentQuestionData = null; // riapplicato se si cambia lingua mentre una domanda è attiva
+  let mySummary = null; // risposte e risultato di tutte le domande, per il PDF scaricabile
 
   function T(key) { return window.t(lang, key); }
 
@@ -59,6 +60,7 @@
     el('lockedSubtitleText').textContent = T('lockedSubtitle');
     el('leaderboardTitleText').textContent = T('leaderboardTitle');
     el('finishedTitleText').textContent = T('finishedTitle');
+    el('downloadSummaryBtn').textContent = T('downloadSummaryBtn');
     if (currentQuestionData) renderQuestionTexts(currentQuestionData); // ri-traduce la domanda attiva, se c'è
     if (lastReveal) renderReveal(lastReveal); // ri-traduce il reveal se già visibile
   }
@@ -100,6 +102,7 @@
         break;
       case 'finished':
         showPanel('panelFinished');
+        socket.emit('request-my-summary'); // riconnessione dopo la fine: recupera comunque il riepilogo
         break;
       default:
         showPanel('panelLobby');
@@ -233,7 +236,64 @@
     const me = idx >= 0 ? payload.players[idx] : null;
     el('finalRank').textContent = me ? T('finalRankTemplate').replace('{rank}', idx + 1).replace('{score}', me.score) : '';
     showPanel('panelFinished');
+    el('downloadSummaryBtn').style.display = 'none';
+    socket.emit('request-my-summary');
   });
+
+  socket.on('my-summary', (data) => {
+    mySummary = data;
+    el('downloadSummaryBtn').style.display = 'block';
+  });
+
+  el('downloadSummaryBtn').addEventListener('click', downloadSummaryPdf);
+
+  // Un'opzione per domanda a scelta singola/Vero-Falso, più opzioni per selezione multipla.
+  function formatMyAnswer(item, opts) {
+    if (!item.answered) return '—';
+    if (Array.isArray(item.myOptionIndexes)) {
+      const labels = item.myOptionIndexes.map((i) => opts[i]).filter(Boolean);
+      return labels.length ? labels.join(', ') : '—';
+    }
+    return item.myOptionIndex != null && opts[item.myOptionIndex] != null ? opts[item.myOptionIndex] : '—';
+  }
+
+  function downloadSummaryPdf() {
+    if (!mySummary || !window.jspdf) { showToast(T('pdfUnavailable')); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 15;
+    let y = 20;
+    const ensureSpace = () => { if (y > pageHeight - 20) { doc.addPage(); y = 20; } };
+    const writeLine = (text, size, bold) => {
+      doc.setFontSize(size || 11);
+      doc.setFont(undefined, bold ? 'bold' : 'normal');
+      doc.splitTextToSize(text, pageWidth - margin * 2).forEach((line) => {
+        ensureSpace();
+        doc.text(line, margin, y);
+        y += 7;
+      });
+    };
+
+    writeLine(mySummary.quizTitle || 'Quiz', 18, true);
+    writeLine(`${mySummary.nickname} — ${T('totalScoreLabel')}: ${mySummary.totalScore}`, 12);
+    y += 4;
+
+    mySummary.items.forEach((item, i) => {
+      const qText = (item.textByLang && (item.textByLang[lang] || item.textByLang.it)) || '';
+      const opts = (item.optionsByLang && (item.optionsByLang[lang] || item.optionsByLang.it)) || [];
+      ensureSpace();
+      writeLine(`${i + 1}. ${qText}`, 12, true);
+      writeLine(`${T('yourAnswerLabel')}: ${formatMyAnswer(item, opts)}`, 10);
+      const resultLabel = !item.answered ? T('resultTimeout') : (item.correct ? T('resultCorrect') : T('resultWrong'));
+      writeLine(`${resultLabel} — ${item.points} ${T('pointsSuffix')}`, 10);
+      y += 3;
+    });
+
+    const safeTitle = (mySummary.quizTitle || 'quiz').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    doc.save(`${safeTitle}-${mySummary.nickname}-riepilogo.pdf`);
+  }
 
   function renderRankList(elId, players) {
     const box = el(elId);
