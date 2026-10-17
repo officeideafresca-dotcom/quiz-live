@@ -99,7 +99,9 @@ Nel pannello `/admin`, sezione "Crea / modifica quiz":
 Durante l'evento: **"▶ Avvia prossima domanda"** fa partire la domanda successiva in coda
 (puoi ripeterlo quante volte vuoi, avanza automaticamente), **"Mostra risposta corretta"**
 blocca le risposte e rivela il risultato con il grafico delle scelte, **"Mostra classifica"**
-mostra la classifica aggiornata, **"Termina partita"** chiude il gioco con il podio finale.
+mostra la classifica aggiornata, **"Termina partita"** chiude il gioco con il podio finale e
+**scarica subito da solo CSV e PDF** sul dispositivo dell'admin — non c'è bisogno di ricordarsi
+di premere altri bottoni dopo: lo stato è solo in memoria e un riavvio del server lo cancella.
 
 ## Collegamento con Idea Fresca 25 Anni
 

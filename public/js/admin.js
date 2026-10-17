@@ -111,7 +111,14 @@
   socket.on('answers:count', (p) => { if (state) { state.answersCount = p.count; renderStatus(); } });
   socket.on('question:reveal', () => { if (state) { state.status = 'reveal'; renderStatus(); } });
   socket.on('leaderboard:show', () => { if (state) { state.status = 'leaderboard'; renderStatus(); } });
-  socket.on('game:finished', () => { if (state) { state.status = 'finished'; renderStatus(); } });
+  socket.on('game:finished', () => {
+    if (state) { state.status = 'finished'; renderStatus(); }
+    // Salvataggio automatico: appena la partita finisce scarichiamo subito CSV + PDF da
+    // soli, senza bisogno di ricordarsi altri bottoni più tardi — lo stato è solo in
+    // memoria, un riavvio del server nel frattempo cancellerebbe tutto per sempre.
+    pendingExportFormat = 'both';
+    sendAdmin('export-data');
+  });
   socket.on('reset', () => socket.emit('request-state'));
 
   // ---------- Lingua maxischermo ----------
@@ -341,7 +348,18 @@
   el('btnExportPdf').addEventListener('click', () => { pendingExportFormat = 'pdf'; sendAdmin('export-data'); });
 
   socket.on('admin:export-data', (data) => {
-    if (pendingExportFormat === 'pdf') { downloadAdminSummaryPdf(data); return; }
+    if (pendingExportFormat === 'pdf' || pendingExportFormat === 'both') downloadAdminSummaryPdf(data);
+    if (pendingExportFormat === 'csv' || pendingExportFormat === 'both') downloadCsv(data);
+    if (pendingExportFormat === 'both') {
+      const status = el('exportStatus');
+      if (status) {
+        status.textContent = 'Partita finita: risultati salvati automaticamente (CSV + PDF) ✓';
+        setTimeout(() => { status.textContent = ''; }, 8000);
+      }
+    }
+  });
+
+  function downloadCsv(data) {
     const rows = [];
     rows.push(['Nickname', 'Punteggio totale', ...data.questions.map((q, i) => `D${i + 1}: ${q.text}`)]);
     data.players
@@ -364,7 +382,7 @@
     a.download = `${safeTitle}-risultati.csv`;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
-  });
+  }
 
   function csvEscape(v) {
     const s = String(v == null ? '' : v);
