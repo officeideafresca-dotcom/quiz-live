@@ -164,17 +164,27 @@
       card._translations[card._activeLang].text = e.target.value;
     });
     card.querySelectorAll(`input[name="type-${id}"]`).forEach((r) => r.addEventListener('change', () => {
-      card._lastCorrect = Array.from(card.querySelectorAll(`input[name="correct-${id}"]:checked`)).map((i) => Number(i.value));
+      syncCorrectFromDom(card, id);
       renderOptions(card, id);
     }));
     card.querySelector('[data-action="add-option"]').addEventListener('click', () => {
       if (card._translations.it.options.length < 4) {
+        syncCorrectFromDom(card, id);
         QUIZ_LANGS.forEach((l) => card._translations[l].options.push(''));
         renderOptions(card, id);
       }
     });
 
     renderOptions(card, id);
+  }
+
+  // Legge quali caselle/pallini "risposta corretta" sono spuntati ADESSO nel DOM e li
+  // salva in card._lastCorrect, PRIMA di ricostruire la lista opzioni (cambio linguetta di
+  // lingua, aggiunta/rimozione opzione): senza questo passaggio, ogni volta che si ridisegna
+  // la lista si perderebbero le spunte appena messe dall'admin, tornando all'ultimo stato noto.
+  function syncCorrectFromDom(card, id) {
+    const checked = Array.from(card.querySelectorAll(`input[name="correct-${id}"]:checked`)).map((i) => Number(i.value));
+    if (checked.length) card._lastCorrect = checked;
   }
 
   function renderLangTabs(card, id) {
@@ -186,6 +196,7 @@
       b.className = 'lang-tab' + (l === card._activeLang ? ' active' : '');
       b.textContent = LANG_LABELS[l];
       b.addEventListener('click', () => {
+        syncCorrectFromDom(card, id);
         card._activeLang = l;
         renderLangTabs(card, id);
         loadActiveLangIntoFields(card);
@@ -207,6 +218,13 @@
     const correctArr = card._lastCorrect && card._lastCorrect.length ? card._lastCorrect : [0];
     box.innerHTML = '';
     hint.textContent = type === 'multi' ? 'Segna con la spunta tutte le risposte corrette (2 o più).' : '';
+    // Rete di sicurezza: ogni volta che l'admin spunta/togli una risposta corretta, lo
+    // registriamo subito in card._lastCorrect (oltre a syncCorrectFromDom chiamato prima di
+    // ogni ridisegno), così non si perde mai anche se in futuro si aggiunge un altro punto
+    // che ricostruisce la lista delle opzioni.
+    box.addEventListener('change', (e) => {
+      if (e.target.matches(`input[name="correct-${id}"]`)) syncCorrectFromDom(card, id);
+    });
 
     if (type === 'tf') {
       addBtn.style.display = 'none';
@@ -237,6 +255,7 @@
       });
       const removeBtn = row.querySelector('[data-action="remove-option"]');
       if (removeBtn) removeBtn.addEventListener('click', () => {
+        syncCorrectFromDom(card, id);
         QUIZ_LANGS.forEach((l) => card._translations[l].options.splice(i, 1));
         card._lastCorrect = card._lastCorrect.filter((c) => c !== i).map((c) => (c > i ? c - 1 : c));
         renderOptions(card, id);
