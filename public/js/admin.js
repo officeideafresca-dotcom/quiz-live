@@ -40,7 +40,25 @@
     } else {
       addQuestionCard();
     }
+    clearDirty(); // appena ricaricato dal server: non c'è ancora nessuna modifica locale
   });
+
+  // ---------- Barra "modifiche non salvate" ----------
+  // Il bottone "Salva quiz" in fondo alla lista è facile da perdere di vista quando ci sono
+  // tante domande: questa barra fissa in basso compare appena si tocca qualcosa nell'editor,
+  // così si sa sempre che bisogna salvare e il bottone resta a portata di mano.
+  function markDirty() { el('saveBar').style.display = 'flex'; }
+  function clearDirty() { el('saveBar').style.display = 'none'; }
+
+  el('quizTitleInput').addEventListener('input', markDirty);
+  document.querySelectorAll('input[name="leaderboardTiming"]').forEach((r) => r.addEventListener('change', markDirty));
+  el('questionsList').addEventListener('input', markDirty);
+  el('questionsList').addEventListener('change', markDirty);
+  el('questionsList').addEventListener('click', (e) => {
+    if (e.target.closest('[data-action="remove"], [data-action="add-option"], [data-action="remove-option"]')) markDirty();
+  });
+  el('btnAddQuestion').addEventListener('click', markDirty);
+  el('btnSaveQuizFloating').addEventListener('click', () => el('btnSaveQuiz').click());
 
   socket.on('admin:error', (e) => {
     if (e.code === 'bad_pin') {
@@ -272,14 +290,15 @@
   el('btnSaveQuiz').addEventListener('click', () => {
     const title = el('quizTitleInput').value.trim() || 'Quiz';
     const cards = Array.from(document.querySelectorAll('.question-card'));
-    if (!cards.length) { el('quizError').textContent = 'Aggiungi almeno una domanda'; return; }
+    if (!cards.length) { showSaveError('Aggiungi almeno una domanda'); return; }
     const questions = [];
-    for (const card of cards) {
+    for (let idx = 0; idx < cards.length; idx++) {
+      const card = cards[idx];
       const id = card.dataset.qid;
       const type = card.querySelector(`input[name="type-${id}"]:checked`).value;
       const timeLimitSec = Number(card.querySelector('.q-time').value) || 20;
       const itText = card._translations.it.text.trim();
-      if (!itText) { el('quizError').textContent = 'Scrivi almeno il testo in italiano per ogni domanda (le altre lingue sono opzionali)'; return; }
+      if (!itText) { showSaveError(`Domanda ${idx + 1}: scrivi almeno il testo in italiano (le altre lingue sono opzionali)`); return; }
 
       let translations;
       if (type === 'tf') {
@@ -287,14 +306,14 @@
         QUIZ_LANGS.forEach((l) => { translations[l] = { text: card._translations[l].text.trim(), options: TF_LABELS[l] }; });
       } else {
         const itOpts = card._translations.it.options.map((v) => v.trim());
-        if (itOpts.filter((o) => o).length < 2) { el('quizError').textContent = 'Ogni domanda deve avere almeno 2 opzioni in italiano'; return; }
+        if (itOpts.filter((o) => o).length < 2) { showSaveError(`Domanda ${idx + 1}: servono almeno 2 opzioni in italiano`); return; }
         translations = {};
         QUIZ_LANGS.forEach((l) => { translations[l] = { text: card._translations[l].text.trim(), options: card._translations[l].options.map((v) => v.trim()) }; });
       }
 
       if (type === 'multi') {
         const correctIndexes = Array.from(card.querySelectorAll(`input[name="correct-${id}"]:checked`)).map((i) => Number(i.value));
-        if (!correctIndexes.length) { el('quizError').textContent = 'Segna almeno una risposta corretta in ogni domanda a selezione multipla'; return; }
+        if (!correctIndexes.length) { showSaveError(`Domanda ${idx + 1}: segna almeno una risposta corretta`); return; }
         questions.push({ type, translations, correctIndexes, timeLimitSec });
       } else {
         const correctRadio = card.querySelector(`input[name="correct-${id}"]:checked`);
@@ -305,8 +324,16 @@
     el('quizError').textContent = '';
     const showLeaderboardAfterEachQuestion = document.querySelector('input[name="leaderboardTiming"]:checked').value === 'each';
     sendAdmin('set-quiz', { title, questions, showLeaderboardAfterEachQuestion });
+    clearDirty();
     alert(`Quiz salvato con ${questions.length} domande.`);
   });
+
+  // Il salvataggio di TUTTE le domande fallisce se anche una sola non è valida: un alert
+  // (impossibile non vedere, a differenza del testo in fondo alla pagina) dice subito quale.
+  function showSaveError(msg) {
+    el('quizError').textContent = msg;
+    alert('Impossibile salvare: ' + msg);
+  }
 
   // ---------- Export CSV ----------
   el('btnExport').addEventListener('click', () => sendAdmin('export-data'));

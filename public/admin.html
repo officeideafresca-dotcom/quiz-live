@@ -86,6 +86,13 @@
   </div>
 </div>
 
+<!-- Barra sempre visibile: compare appena modifichi qualcosa nell'editor, così non serve
+     scorrere fino in fondo per trovare "Salva quiz" dopo aver cambiato una domanda. -->
+<div class="save-bar" id="saveBar" style="display:none;">
+  <span>Modifiche non salvate</span>
+  <button class="btn-primary" id="btnSaveQuizFloating">Salva ora</button>
+</div>
+
 <script src="/socket.io/socket.io.js"></script>
 <script src="/js/admin.js"></script>
 </body>
