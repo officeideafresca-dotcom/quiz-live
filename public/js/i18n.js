@@ -20,7 +20,9 @@ window.I18N = {
     finishedTitle: 'Quiz finito!',
     finalRankTemplate: '{rank}° posto · {score} punti',
     pointsSuffix: 'punti',
-    multiHintText: 'Seleziona tutte le risposte corrette',
+    multiHintText: 'Selezione multipla: seleziona tutte le risposte corrette',
+    singleChoiceHintText: 'Scelta singola: tocca una sola risposta',
+    trueFalseHintText: 'Vero o Falso',
   },
   de: {
     brand: 'Quiz Live',
@@ -41,7 +43,9 @@ window.I18N = {
     finishedTitle: 'Quiz beendet!',
     finalRankTemplate: '{rank}. Platz · {score} Punkte',
     pointsSuffix: 'Punkte',
-    multiHintText: 'Wähle alle richtigen Antworten aus',
+    multiHintText: 'Mehrfachauswahl: wähle alle richtigen Antworten aus',
+    singleChoiceHintText: 'Einzelauswahl: tippe nur eine Antwort an',
+    trueFalseHintText: 'Wahr oder Falsch',
   },
   fr: {
     brand: 'Quiz Live',
@@ -62,7 +66,9 @@ window.I18N = {
     finishedTitle: 'Quiz terminé !',
     finalRankTemplate: '{rank}e place · {score} points',
     pointsSuffix: 'points',
-    multiHintText: 'Sélectionnez toutes les bonnes réponses',
+    multiHintText: 'Sélection multiple : sélectionnez toutes les bonnes réponses',
+    singleChoiceHintText: 'Choix unique : touchez une seule réponse',
+    trueFalseHintText: 'Vrai ou Faux',
   },
   es: {
     brand: 'Quiz Live',
@@ -83,7 +89,9 @@ window.I18N = {
     finishedTitle: '¡Quiz terminado!',
     finalRankTemplate: '{rank}º puesto · {score} puntos',
     pointsSuffix: 'puntos',
-    multiHintText: 'Selecciona todas las respuestas correctas',
+    multiHintText: 'Selección múltiple: selecciona todas las respuestas correctas',
+    singleChoiceHintText: 'Selección única: toca solo una respuesta',
+    trueFalseHintText: 'Verdadero o Falso',
   },
   en: {
     brand: 'Quiz Live',
@@ -104,7 +112,9 @@ window.I18N = {
     finishedTitle: 'Quiz finished!',
     finalRankTemplate: '{rank} place · {score} points',
     pointsSuffix: 'points',
-    multiHintText: 'Select all the correct answers',
+    multiHintText: 'Multiple choice: select all the correct answers',
+    singleChoiceHintText: 'Single choice: tap only one answer',
+    trueFalseHintText: 'True or False',
   },
 };
 

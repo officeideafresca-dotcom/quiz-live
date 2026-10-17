@@ -59,7 +59,6 @@
     el('lockedSubtitleText').textContent = T('lockedSubtitle');
     el('leaderboardTitleText').textContent = T('leaderboardTitle');
     el('finishedTitleText').textContent = T('finishedTitle');
-    el('multiHint').textContent = T('multiHintText');
     if (currentQuestionData) renderQuestionTexts(currentQuestionData); // ri-traduce la domanda attiva, se c'è
     if (lastReveal) renderReveal(lastReveal); // ri-traduce il reveal se già visibile
   }
@@ -132,7 +131,6 @@
       b.onclick = () => (isMulti ? toggleMultiOption(b, i) : submitAnswer(i));
       grid.appendChild(b);
     }
-    el('multiHint').style.display = isMulti ? 'block' : 'none';
     renderQuestionTexts(q);
     questionDeadline = (startedAt || Date.now()) + q.timeLimitSec * 1000;
     showPanel('panelQuestion');
@@ -152,6 +150,9 @@
       const i = Number(node.dataset.idx);
       node.textContent = opts[i] || '';
     });
+    // Sempre visibile: altrimenti non si capisce se si può scegliere una sola risposta o più.
+    const hintKey = q.type === 'multi' ? 'multiHintText' : (q.type === 'tf' ? 'trueFalseHintText' : 'singleChoiceHintText');
+    el('questionModeHint').textContent = T(hintKey);
   }
 
   // Selezione multipla: ogni tocco accende/spegne l'opzione, nessun invio immediato.
