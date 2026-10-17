@@ -12,11 +12,38 @@ const MAX_QUESTIONS = 50;
 const DEFAULT_TIME_LIMIT = 20;
 const BASE_POINTS = 1000;
 
+// Quiz pre-caricato per la serata del 25° anniversario con il team guida: priorità e
+// previsioni per il prossimo anno e per i prossimi 3 anni, più un blocco finale su
+// emozione e mindset. Le opzioni segnate come "corretta" per le domande di opinione sono
+// solo un punto di partenza: modificale dal pannello admin in base alla tua reale strategia
+// prima dell'evento (vale soprattutto per le domande 5, 8, 11, 12 dove conta il dato vero).
+const DEFAULT_QUIZ = {
+  title: 'Idea Fresca — Il futuro del team',
+  questions: [
+    { text: 'Qual è secondo te la priorità numero uno del team per il prossimo anno?', type: 'mc', options: ['Acquisire nuovi clienti', 'Formare nuovi partner', 'Rafforzare la squadra attuale', 'Investire in strumenti digitali'], correctIndex: 0, timeLimitSec: 20 },
+    { text: 'Quale canale pensi crescerà di più nei prossimi 12 mesi?', type: 'mc', options: ['Eventi dal vivo', 'Social media', 'Passaparola', 'Formazione online'], correctIndex: 0, timeLimitSec: 20 },
+    { text: "Userò l'AI attivamente nel mio lavoro quotidiano entro il prossimo anno", type: 'tf', options: ['Vero', 'Falso'], correctIndex: 0, timeLimitSec: 15 },
+    { text: 'Quale skill vorresti sviluppare di più nei prossimi 12 mesi?', type: 'mc', options: ['Vendita e comunicazione', 'Leadership', 'Digitale e AI', 'Gestione del tempo'], correctIndex: 0, timeLimitSec: 20 },
+    { text: 'Quanti eventi di squadra/locali ti aspetti nel prossimo anno?', type: 'mc', options: ['1-5', '6-10', '11-20', 'Più di 20'], correctIndex: 1, timeLimitSec: 20 },
+    { text: 'Il prossimo anno parteciperò ad almeno un evento in più rispetto a quest\'anno', type: 'tf', options: ['Vero', 'Falso'], correctIndex: 0, timeLimitSec: 15 },
+    { text: 'Tra 3 anni, come vedi la tua posizione nel team?', type: 'mc', options: ['Come oggi ma più solida', 'Leader di una nuova squadra', 'Specializzato in un\'area chiave', 'Non ci ho ancora pensato'], correctIndex: 0, timeLimitSec: 20 },
+    { text: 'Qual è il più grande ostacolo alla crescita nei prossimi 3 anni secondo te?', type: 'mc', options: ['Concorrenza', 'Reclutamento difficile', 'Poco tempo per la formazione', 'Cambiamenti del mercato'], correctIndex: 1, timeLimitSec: 20 },
+    { text: "Tra 3 anni l'AI sarà uno strumento quotidiano per la maggior parte del team", type: 'tf', options: ['Vero', 'Falso'], correctIndex: 0, timeLimitSec: 15 },
+    { text: 'Che tipo di eventi vorresti di più nei prossimi 3 anni?', type: 'mc', options: ['Grandi eventi nazionali', 'Eventi locali frequenti', 'Eventi online/ibridi', 'Viaggi incentive'], correctIndex: 0, timeLimitSec: 20 },
+    { text: 'Qual è, secondo te, il traguardo più importante per i 28 anni di Idea Fresca?', type: 'mc', options: ['Più partner nella rete', 'Più fatturato', 'Più riconoscibilità del brand', 'Più impatto nella formazione'], correctIndex: 0, timeLimitSec: 20 },
+    { text: 'Tra 3 anni la formazione sarà soprattutto digitale, non più in presenza', type: 'tf', options: ['Vero', 'Falso'], correctIndex: 1, timeLimitSec: 15 },
+    { text: 'Cosa ti rende più orgoglioso di far parte di Idea Fresca oggi?', type: 'mc', options: ['Le relazioni costruite', 'La libertà che mi dà questo lavoro', 'La crescita personale che ho fatto', 'L\'impatto che ho sulla vita degli altri'], correctIndex: 0, timeLimitSec: 20 },
+    { text: 'Nei momenti difficili, quello che mi fa continuare è più legato alle persone del team che ai risultati numerici', type: 'tf', options: ['Vero', 'Falso'], correctIndex: 0, timeLimitSec: 15 },
+    { text: 'Qual è il mindset che vuoi portare con te nei prossimi 25 anni?', type: 'mc', options: ['Coraggio di osare', 'Costanza nel tempo', 'Apertura al cambiamento', 'Gratitudine per il percorso fatto'], correctIndex: 0, timeLimitSec: 20 },
+    { text: 'In una parola, cosa rappresentano per te questi 25 anni?', type: 'mc', options: ['Famiglia', 'Crescita', 'Sfida', 'Eredità'], correctIndex: 0, timeLimitSec: 20 },
+  ],
+};
+
 function freshState() {
   return {
     status: 'lobby', // lobby | question | reveal | leaderboard | finished
-    quizTitle: 'Quiz',
-    questions: [], // { text, type:'mc'|'tf', options:[...], correctIndex, timeLimitSec }
+    quizTitle: DEFAULT_QUIZ.title,
+    questions: DEFAULT_QUIZ.questions.map((q) => ({ ...q, options: [...q.options] })), // { text, type:'mc'|'tf', options:[...], correctIndex, timeLimitSec }
     showLeaderboardAfterEachQuestion: true, // impostazione del quiz: classifica dopo ogni domanda o solo alla fine
     currentIndex: -1,
     currentStartedAt: null,
@@ -255,6 +282,16 @@ io.on('connection', (socket) => {
       case 'reset': {
         state = freshState();
         io.emit('reset');
+        return;
+      }
+      case 'get-quiz': {
+        // Solo a chi la richiede (il pannello admin): include le risposte corrette,
+        // quindi non va mai mandato in broadcast a schermo/partecipanti.
+        socket.emit('admin:quiz-data', {
+          title: state.quizTitle,
+          questions: state.questions,
+          showLeaderboardAfterEachQuestion: state.showLeaderboardAfterEachQuestion,
+        });
         return;
       }
       case 'export-data': {

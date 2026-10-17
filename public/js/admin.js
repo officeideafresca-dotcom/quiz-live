@@ -18,10 +18,24 @@
     el('pinBox').style.display = 'none';
     el('controls').style.display = 'flex';
     el('pinError').textContent = '';
+    sendAdmin('get-quiz');
   }
   el('btnUnlock').addEventListener('click', unlock);
   el('pinInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') unlock(); });
-  if (pin) { el('pinBox').style.display = 'none'; el('controls').style.display = 'flex'; }
+  if (pin) { el('pinBox').style.display = 'none'; el('controls').style.display = 'flex'; sendAdmin('get-quiz'); }
+
+  // Le domande esistenti sul server (incluse le risposte corrette) arrivano solo qui,
+  // mai nell'evento 'init' condiviso con schermo/partecipanti.
+  socket.on('admin:quiz-data', (data) => {
+    el('quizTitleInput').value = data.title || '';
+    document.querySelector(`input[name="leaderboardTiming"][value="${data.showLeaderboardAfterEachQuestion === false ? 'end' : 'each'}"]`).checked = true;
+    el('questionsList').innerHTML = '';
+    if (data.questions && data.questions.length) {
+      data.questions.forEach((q) => addQuestionCard(q));
+    } else {
+      addQuestionCard();
+    }
+  });
 
   socket.on('admin:error', (e) => {
     if (e.code === 'bad_pin') {
@@ -166,7 +180,6 @@
   }
 
   el('btnAddQuestion').addEventListener('click', () => addQuestionCard());
-  addQuestionCard(); // parte con una domanda vuota già pronta
 
   el('btnSaveQuiz').addEventListener('click', () => {
     const title = el('quizTitleInput').value.trim() || 'Quiz';
