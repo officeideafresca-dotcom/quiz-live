@@ -58,7 +58,9 @@
     renderQuestion(q, payload.startedAt);
   });
 
-  function renderQuestion(q, startedAt) {
+  // Separata dal timer: serve anche per aggiornare solo il testo quando l'admin cambia la
+  // lingua del maxischermo a metà di una domanda già partita, senza toccare il conto alla rovescia.
+  function renderQuestionContent(q) {
     el('qText').textContent = q.text || '';
     el('qHint').textContent = q.type === 'multi' ? 'Selezione multipla: possono essere corrette più risposte' : '';
     const box = el('qAnswers');
@@ -69,6 +71,10 @@
       div.innerHTML = `<span class="shape">${SHAPES[i] || '?'}</span><span>${escapeHtml(opt)}</span>`;
       box.appendChild(div);
     });
+  }
+
+  function renderQuestion(q, startedAt) {
+    renderQuestionContent(q);
     el('qProgress').textContent = '';
     showView('viewQuestion');
 
@@ -82,6 +88,12 @@
     tick();
     qTimerInterval = setInterval(tick, 250);
   }
+
+  // L'admin ha cambiato la lingua del maxischermo: se c'è una domanda attiva, ne aggiorniamo
+  // solo il contenuto (il timer, già in corso, non viene toccato).
+  socket.on('screen-lang:update', (payload) => {
+    if (payload.question) renderQuestionContent(payload.question);
+  });
 
   socket.on('answers:count', (p) => {
     el('qProgress').textContent = `${p.count} / ${p.total} hanno risposto`;

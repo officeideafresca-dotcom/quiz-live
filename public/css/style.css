@@ -123,6 +123,8 @@ input[type="text"]:focus { outline: 3px solid var(--gold); }
   font-variant-numeric: tabular-nums;
 }
 
+.question-text { font-size: 1.1rem; font-weight: 800; line-height: 1.3; }
+
 .answer-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -130,17 +132,21 @@ input[type="text"]:focus { outline: 3px solid var(--gold); }
   width: 100%;
 }
 .answer-tile {
-  aspect-ratio: 1;
+  min-height: 110px;
   border: none;
   border-radius: 18px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 3rem;
+  gap: 6px;
+  padding: 10px 8px;
   color: #fff;
   cursor: pointer;
   box-shadow: 0 8px 0 rgba(0,0,0,0.25);
 }
+.answer-tile .shape { font-size: 1.8rem; }
+.answer-tile .label { font-size: 0.95rem; font-weight: 700; line-height: 1.25; }
 .answer-tile:active { transform: translateY(4px); box-shadow: 0 4px 0 rgba(0,0,0,0.25); }
 .answer-tile:disabled { opacity: 0.45; }
 .answer-tile.c0 { background: var(--red); }

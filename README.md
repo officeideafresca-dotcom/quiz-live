@@ -8,13 +8,14 @@ maxischermo. **Riutilizzabile per qualsiasi evento** — non è legata a Idea Fr
 ## Come funziona
 
 - **Partecipanti** (`/`): scansionano il QR, scrivono un nickname (nessun account), e durante
-  ogni domanda vedono **solo forme/colori** da toccare (come su Kahoot) — il testo della
-  domanda e le opzioni compaiono solo sul maxischermo, per spingere il gruppo a guardare lì.
-  Il punteggio premia velocità + correttezza (risposta corretta istantanea = 1000 punti,
-  via via meno punti più tardi si risponde entro il tempo limite, 0 se sbagliata).
+  ogni domanda vedono il testo e le opzioni **tradotti nella propria lingua** (IT/DE/FR/ES/EN,
+  rilevata dal telefono o cambiabile a mano) insieme alle forme/colori da toccare. Il punteggio
+  premia velocità + correttezza (risposta corretta istantanea = 1000 punti, via via meno punti
+  più tardi si risponde entro il tempo limite, 0 se sbagliata).
 - **Schermo grande** (`/screen`): QR + elenco di chi si è iscritto in lobby, poi domanda +
   countdown + opzioni colorate, poi il reveal con un grafico di quante persone hanno scelto
-  ogni risposta, poi la classifica, fino al podio finale.
+  ogni risposta, poi la classifica, fino al podio finale. Mostra sempre **una sola lingua a
+  scelta** (di default l'inglese), impostabile dal pannello admin — vedi sotto.
 - **Pannello di regia** (`/admin`): protetto da PIN, da aprire sul tuo telefono/laptop
   personale. Da qui crei il quiz (titolo + domande, con tempo limite personalizzabile per
   ciascuna), controlli il ritmo del gioco (avvia domanda → mostra risposta → mostra classifica
@@ -38,6 +39,22 @@ maxischermo. **Riutilizzabile per qualsiasi evento** — non è legata a Idea Fr
 
 Sul maxischermo il reveal mostra sempre il grafico con quante persone hanno scelto ogni opzione
 e marca con un ✓ tutte le risposte corrette (una o più, secondo il tipo di domanda).
+
+### Lingue: schermo vs partecipanti
+
+Ogni domanda si scrive (o traduce) in 5 lingue — IT/DE/FR/ES/EN — direttamente nell'editor
+dell'admin, con una linguetta per lingua sopra il testo della domanda:
+
+- **Sullo smartphone**, ogni partecipante vede sempre testo e opzioni nella propria lingua
+  (rilevata automaticamente, cambiabile con il selettore in alto). Lingue senza traduzione
+  scritta mostrano l'italiano come ripiego.
+- **Sul maxischermo** si vede sempre una sola lingua per tutti, scelta dal pannello admin nel
+  box "Lingua maxischermo" (di default inglese). Cambiarla durante una domanda già partita
+  aggiorna subito il testo mostrato senza riavviare il conto alla rovescia.
+
+Solo il testo in **italiano** è obbligatorio per salvare una domanda: le altre lingue sono
+facoltative e, se lasciate vuote, usano l'italiano come ripiego sia sullo smartphone che sul
+maxischermo.
 
 ## Avvio rapido (in locale)
 
@@ -70,8 +87,9 @@ Nel pannello `/admin`, sezione "Crea / modifica quiz":
 2. Scegli **quando mostrare la classifica**: "Dopo ogni domanda" (più feedback frequente) o
    "Solo alla fine" (tutta la suspense riservata al podio finale) — con questa seconda opzione
    il pulsante "Mostra classifica" resta disattivato fino a "Termina partita"
-3. Per ogni domanda: testo, tipo (Scelta multipla 2-4 opzioni, oppure Vero/Falso), segna con il
-   pallino quale opzione è quella corretta, imposta il tempo limite in secondi
+3. Per ogni domanda: scegli il tipo (Scelta singola, Selezione multipla o Vero/Falso), scrivi
+   testo e opzioni per ogni lingua che vuoi coprire (linguette IT/DE/FR/ES/EN, solo l'italiano è
+   obbligatorio), segna quale/quali opzioni sono corrette, imposta il tempo limite in secondi
 4. "+ Aggiungi domanda" per le successive, poi **"Salva quiz"**
 
 Durante l'evento: **"▶ Avvia prossima domanda"** fa partire la domanda successiva in coda

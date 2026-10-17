@@ -15,6 +15,7 @@
   let multiSelected = null; // Set delle opzioni toccate, solo per il tipo 'multi'
   let multiSubmitted = false;
   let lastReveal = null; // riapplicato se si cambia lingua mentre il reveal è a schermo
+  let currentQuestionData = null; // riapplicato se si cambia lingua mentre una domanda è attiva
 
   function T(key) { return window.t(lang, key); }
 
@@ -59,6 +60,7 @@
     el('leaderboardTitleText').textContent = T('leaderboardTitle');
     el('finishedTitleText').textContent = T('finishedTitle');
     el('multiHint').textContent = T('multiHintText');
+    if (currentQuestionData) renderQuestionTexts(currentQuestionData); // ri-traduce la domanda attiva, se c'è
     if (lastReveal) renderReveal(lastReveal); // ri-traduce il reveal se già visibile
   }
 
@@ -115,6 +117,7 @@
 
   function startQuestionUI(q, startedAt) {
     currentQuestionIndex = q.index;
+    currentQuestionData = q;
     const optionCount = q.optionCount || (q.options ? q.options.length : 2);
     const grid = el('answerGrid');
     grid.innerHTML = '';
@@ -125,16 +128,30 @@
     for (let i = 0; i < optionCount; i++) {
       const b = document.createElement('button');
       b.className = `answer-tile c${i}`;
-      b.textContent = shapes[i] || '?';
+      b.innerHTML = `<span class="shape">${shapes[i] || '?'}</span><span class="label" data-idx="${i}"></span>`;
       b.onclick = () => (isMulti ? toggleMultiOption(b, i) : submitAnswer(i));
       grid.appendChild(b);
     }
     el('multiHint').style.display = isMulti ? 'block' : 'none';
+    renderQuestionTexts(q);
     questionDeadline = (startedAt || Date.now()) + q.timeLimitSec * 1000;
     showPanel('panelQuestion');
     tickTimer();
     if (questionTimerInterval) clearInterval(questionTimerInterval);
     questionTimerInterval = setInterval(tickTimer, 250);
+  }
+
+  // Testo della domanda e delle opzioni nella lingua del partecipante (con ripiego in
+  // italiano se manca una traduzione) — richiamata anche quando si cambia lingua a domanda
+  // già in corso, per non perdere la selezione fatta finora.
+  function renderQuestionTexts(q) {
+    const text = (q.textByLang && (q.textByLang[lang] || q.textByLang.it)) || '';
+    const opts = (q.optionsByLang && (q.optionsByLang[lang] || q.optionsByLang.it)) || [];
+    el('questionText').textContent = text;
+    document.querySelectorAll('#answerGrid .answer-tile .label').forEach((node) => {
+      const i = Number(node.dataset.idx);
+      node.textContent = opts[i] || '';
+    });
   }
 
   // Selezione multipla: ogni tocco accende/spegne l'opzione, nessun invio immediato.
