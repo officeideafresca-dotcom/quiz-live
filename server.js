@@ -614,7 +614,19 @@ io.on('connection', (socket) => {
         return;
       }
       case 'reset': {
-        state = freshState();
+        // "Nuova partita": azzera solo giocatori/punteggi, NON il quiz configurato — altrimenti
+        // ogni reset butterebbe via le domande salvate e farebbe tornare quelle di default.
+        state = {
+          status: 'lobby',
+          screenLang: state.screenLang,
+          quizTitle: state.quizTitle,
+          questions: state.questions,
+          showLeaderboardAfterEachQuestion: state.showLeaderboardAfterEachQuestion,
+          currentIndex: -1,
+          currentStartedAt: null,
+          currentAnswersCount: 0,
+          players: {},
+        };
         io.emit('reset');
         return;
       }

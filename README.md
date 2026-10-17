@@ -113,8 +113,12 @@ configurazione aggiuntiva qui: basta che l'altra app conosca l'URL pubblico e il
 
 - Stato in memoria (nessun database): pensato per una sessione di gioco, non per conservare
   storico tra eventi diversi. Se vuoi tenere i risultati, scarica il CSV o il PDF prima di
-  premere Reset — e soprattutto prima di un nuovo deploy: pubblicare un aggiornamento riavvia
-  il server e azzera partecipanti e punteggi della sessione in corso.
+  premere Reset. **"Reset completo (nuova partita)" azzera solo giocatori e punteggi**: il
+  quiz che hai salvato (titolo, domande, traduzioni) resta intatto, pronto per un altro giro.
+  Quello che invece NON si può evitare è un riavvio vero e proprio del server — tipicamente
+  quando pubblichi un aggiornamento del codice (nuovo deploy): in quel caso sì che si perdono
+  partecipanti, punteggi **e** il quiz personalizzato, perché tutto torna alle 16 domande di
+  default scritte nel codice. Pubblica gli aggiornamenti prima dell'evento, non a metà.
 - Fino a 300 giocatori e 50 domande per partita (limiti modificabili in `server.js`).
 - I giocatori si riconnettono automaticamente con lo stesso punteggio se ricaricano la pagina
   durante la stessa partita (l'identità resta salvata nel browser del telefono).
