@@ -1,7 +1,9 @@
 (function () {
   const el = (id) => document.getElementById(id);
   const socket = io();
+  const LANGS = ['it', 'de', 'fr', 'es', 'en'];
 
+  let lang = localStorage.getItem('ql_lang') || window.detectLang();
   let playerId = localStorage.getItem('ql_player_id') || null;
   let nickname = localStorage.getItem('ql_nickname') || '';
   let currentQuestionIndex = -1;
@@ -9,6 +11,9 @@
   let hasAnsweredCurrent = false;
   let questionTimerInterval = null;
   let questionDeadline = null;
+  let lastReveal = null; // riapplicato se si cambia lingua mentre il reveal è a schermo
+
+  function T(key) { return window.t(lang, key); }
 
   function showPanel(id) {
     document.querySelectorAll('.screen-panel').forEach((p) => p.classList.remove('show'));
@@ -26,6 +31,33 @@
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  // ---------- Lingua ----------
+  function renderLangSwitch() {
+    const box = el('langSwitch');
+    box.innerHTML = '';
+    LANGS.forEach((l) => {
+      const b = document.createElement('button');
+      b.textContent = l.toUpperCase();
+      if (l === lang) b.classList.add('active');
+      b.onclick = () => { lang = l; localStorage.setItem('ql_lang', l); applyTranslations(); renderLangSwitch(); };
+      box.appendChild(b);
+    });
+  }
+
+  function applyTranslations() {
+    document.documentElement.lang = lang;
+    el('joinTitleText').textContent = T('joinTitle');
+    el('nicknameInput').placeholder = T('nicknamePlaceholder');
+    el('joinBtn').textContent = T('joinBtn');
+    el('lobbyTitleText').textContent = T('lobbyTitle');
+    el('lobbyWaitTextEl').textContent = T('lobbyWaitText');
+    el('lockedTitleText').textContent = T('lockedTitle');
+    el('lockedSubtitleText').textContent = T('lockedSubtitle');
+    el('leaderboardTitleText').textContent = T('leaderboardTitle');
+    el('finishedTitleText').textContent = T('finishedTitle');
+    if (lastReveal) renderReveal(lastReveal); // ri-traduce il reveal se già visibile
+  }
+
   if (nickname) el('nicknameInput').value = nickname;
 
   el('joinBtn').addEventListener('click', doJoin);
@@ -33,7 +65,7 @@
 
   function doJoin() {
     const val = el('nicknameInput').value.trim();
-    if (!val) { el('joinError').textContent = 'Scrivi un nome prima di entrare'; return; }
+    if (!val) { el('joinError').textContent = T('joinErrorEmpty'); return; }
     nickname = val;
     localStorage.setItem('ql_nickname', nickname);
     socket.emit('join-game', { nickname, playerId });
@@ -72,6 +104,7 @@
   socket.on('question:start', (payload) => {
     hasAnsweredCurrent = false;
     myLastChoice = null;
+    lastReveal = null;
     startQuestionUI(payload.player, payload.startedAt);
   });
 
@@ -114,21 +147,26 @@
 
   socket.on('question:reveal', (payload) => {
     if (questionTimerInterval) { clearInterval(questionTimerInterval); questionTimerInterval = null; }
+    lastReveal = payload;
+    renderReveal(payload);
+    showPanel('panelReveal');
+  });
+
+  function renderReveal(payload) {
     const idx = payload.players.findIndex((p) => p.id === playerId);
     const me = idx >= 0 ? payload.players[idx] : null;
     const correct = myLastChoice === payload.correctIndex;
     el('revealIcon').textContent = correct ? '✅' : (myLastChoice == null ? '⌛' : '❌');
-    el('revealText').textContent = myLastChoice == null ? 'Tempo scaduto' : (correct ? 'Risposta corretta!' : 'Risposta sbagliata');
+    el('revealText').textContent = myLastChoice == null ? T('resultTimeout') : (correct ? T('resultCorrect') : T('resultWrong'));
     el('revealText').className = correct ? 'result-correct' : 'result-wrong';
     if (me) {
-      el('revealPoints').textContent = `Punteggio totale: ${me.score}`;
-      el('revealRank').textContent = `Posizione: ${idx + 1}°`;
+      el('revealPoints').textContent = `${T('totalScoreLabel')}: ${me.score}`;
+      el('revealRank').textContent = `${T('rankLabel')}: ${idx + 1}°`;
     } else {
       el('revealPoints').textContent = '';
       el('revealRank').textContent = '';
     }
-    showPanel('panelReveal');
-  });
+  }
 
   socket.on('leaderboard:show', (payload) => {
     renderRankList('leaderboardList', payload.players);
@@ -139,7 +177,7 @@
     renderRankList('finalList', payload.players.slice(0, 10));
     const idx = payload.players.findIndex((p) => p.id === playerId);
     const me = idx >= 0 ? payload.players[idx] : null;
-    el('finalRank').textContent = me ? `${idx + 1}° posto · ${me.score} punti` : '';
+    el('finalRank').textContent = me ? T('finalRankTemplate').replace('{rank}', idx + 1).replace('{score}', me.score) : '';
     showPanel('panelFinished');
   });
 
@@ -158,4 +196,8 @@
     localStorage.removeItem('ql_player_id');
     location.reload();
   });
+
+  // ---- init ----
+  renderLangSwitch();
+  applyTranslations();
 })();

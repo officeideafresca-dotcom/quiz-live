@@ -27,9 +27,28 @@ html, body {
 .app-header {
   text-align: center;
   padding: 22px 20px 10px;
+  position: relative;
 }
 .app-header .brand { font-size: 1.4rem; font-weight: 900; letter-spacing: 0.5px; }
 .app-header .brand span { color: var(--gold); }
+
+.lang-switch {
+  position: absolute;
+  top: 8px;
+  right: 14px;
+  display: flex;
+  gap: 6px;
+}
+.lang-switch button {
+  border: 1px solid rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 0.68rem;
+  padding: 3px 7px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.lang-switch button.active { background: var(--gold); border-color: var(--gold); color: #2a1a00; font-weight: 700; }
 
 .screen-panel {
   flex: 1;

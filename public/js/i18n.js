@@ -1,0 +1,119 @@
+/* Traduzioni: IT, DE, FR, ES + fallback EN — solo l'interfaccia dei partecipanti.
+   Il testo delle domande resta quello scritto dall'admin, visibile solo sul maxischermo. */
+window.I18N = {
+  it: {
+    brand: 'Quiz Live',
+    joinTitle: 'Entra nel quiz',
+    nicknamePlaceholder: 'Il tuo nome',
+    joinBtn: 'Entra',
+    joinErrorEmpty: 'Scrivi un nome prima di entrare',
+    lobbyTitle: 'Sei dentro!',
+    lobbyWaitText: "In attesa che l'host avvii il quiz... guarda il maxischermo",
+    lockedTitle: 'Risposta inviata!',
+    lockedSubtitle: 'Guarda il maxischermo per il risultato...',
+    resultCorrect: 'Risposta corretta!',
+    resultWrong: 'Risposta sbagliata',
+    resultTimeout: 'Tempo scaduto',
+    totalScoreLabel: 'Punteggio totale',
+    rankLabel: 'Posizione',
+    leaderboardTitle: 'Classifica',
+    finishedTitle: 'Quiz finito!',
+    finalRankTemplate: '{rank}° posto · {score} punti',
+    pointsSuffix: 'punti',
+  },
+  de: {
+    brand: 'Quiz Live',
+    joinTitle: 'Tritt dem Quiz bei',
+    nicknamePlaceholder: 'Dein Name',
+    joinBtn: 'Beitreten',
+    joinErrorEmpty: 'Schreibe einen Namen, bevor du beitrittst',
+    lobbyTitle: 'Du bist dabei!',
+    lobbyWaitText: 'Warte, bis der Host das Quiz startet... schau auf die große Leinwand',
+    lockedTitle: 'Antwort gesendet!',
+    lockedSubtitle: 'Schau auf die große Leinwand für das Ergebnis...',
+    resultCorrect: 'Richtige Antwort!',
+    resultWrong: 'Falsche Antwort',
+    resultTimeout: 'Zeit abgelaufen',
+    totalScoreLabel: 'Gesamtpunktzahl',
+    rankLabel: 'Platzierung',
+    leaderboardTitle: 'Rangliste',
+    finishedTitle: 'Quiz beendet!',
+    finalRankTemplate: '{rank}. Platz · {score} Punkte',
+    pointsSuffix: 'Punkte',
+  },
+  fr: {
+    brand: 'Quiz Live',
+    joinTitle: 'Rejoindre le quiz',
+    nicknamePlaceholder: 'Votre nom',
+    joinBtn: 'Rejoindre',
+    joinErrorEmpty: 'Écrivez un nom avant de rejoindre',
+    lobbyTitle: 'Vous êtes connecté !',
+    lobbyWaitText: "En attente que l'hôte lance le quiz... regardez le grand écran",
+    lockedTitle: 'Réponse envoyée !',
+    lockedSubtitle: 'Regardez le grand écran pour le résultat...',
+    resultCorrect: 'Bonne réponse !',
+    resultWrong: 'Mauvaise réponse',
+    resultTimeout: 'Temps écoulé',
+    totalScoreLabel: 'Score total',
+    rankLabel: 'Position',
+    leaderboardTitle: 'Classement',
+    finishedTitle: 'Quiz terminé !',
+    finalRankTemplate: '{rank}e place · {score} points',
+    pointsSuffix: 'points',
+  },
+  es: {
+    brand: 'Quiz Live',
+    joinTitle: 'Entra al quiz',
+    nicknamePlaceholder: 'Tu nombre',
+    joinBtn: 'Entrar',
+    joinErrorEmpty: 'Escribe un nombre antes de entrar',
+    lobbyTitle: '¡Ya estás dentro!',
+    lobbyWaitText: 'Esperando a que el host inicie el quiz... mira la pantalla grande',
+    lockedTitle: '¡Respuesta enviada!',
+    lockedSubtitle: 'Mira la pantalla grande para ver el resultado...',
+    resultCorrect: '¡Respuesta correcta!',
+    resultWrong: 'Respuesta incorrecta',
+    resultTimeout: 'Tiempo agotado',
+    totalScoreLabel: 'Puntuación total',
+    rankLabel: 'Posición',
+    leaderboardTitle: 'Clasificación',
+    finishedTitle: '¡Quiz terminado!',
+    finalRankTemplate: '{rank}º puesto · {score} puntos',
+    pointsSuffix: 'puntos',
+  },
+  en: {
+    brand: 'Quiz Live',
+    joinTitle: 'Join the quiz',
+    nicknamePlaceholder: 'Your name',
+    joinBtn: 'Join',
+    joinErrorEmpty: 'Write a name before joining',
+    lobbyTitle: "You're in!",
+    lobbyWaitText: 'Waiting for the host to start the quiz... watch the big screen',
+    lockedTitle: 'Answer sent!',
+    lockedSubtitle: 'Watch the big screen for the result...',
+    resultCorrect: 'Correct answer!',
+    resultWrong: 'Wrong answer',
+    resultTimeout: "Time's up",
+    totalScoreLabel: 'Total score',
+    rankLabel: 'Rank',
+    leaderboardTitle: 'Leaderboard',
+    finishedTitle: 'Quiz finished!',
+    finalRankTemplate: '{rank} place · {score} points',
+    pointsSuffix: 'points',
+  },
+};
+
+window.detectLang = function detectLang() {
+  const supported = ['it', 'de', 'fr', 'es', 'en'];
+  const langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en'];
+  for (const l of langs) {
+    const code = l.slice(0, 2).toLowerCase();
+    if (supported.includes(code)) return code;
+  }
+  return 'en';
+};
+
+window.t = function t(lang, key) {
+  const dict = window.I18N[lang] || window.I18N.en;
+  return dict[key] != null ? dict[key] : key;
+};
