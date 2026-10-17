@@ -26,18 +26,21 @@ html, body {
 }
 .app-header {
   text-align: center;
-  padding: 22px 20px 10px;
-  position: relative;
+  padding: 10px 20px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .app-header .brand { font-size: 1.4rem; font-weight: 900; letter-spacing: 0.5px; }
 .app-header .brand span { color: var(--gold); }
 
+/* Riga propria sopra il testo del brand, allineata a destra: così non si sovrappone mai,
+   anche su telefoni stretti. */
 .lang-switch {
-  position: absolute;
-  top: 8px;
-  right: 14px;
   display: flex;
+  justify-content: flex-end;
   gap: 6px;
+  flex-wrap: wrap;
 }
 .lang-switch button {
   border: 1px solid rgba(255,255,255,0.4);
