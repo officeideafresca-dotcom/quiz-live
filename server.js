@@ -572,11 +572,14 @@ io.on('connection', (socket) => {
 
   // Riepilogo personale per il PDF scaricabile dal proprio telefono: lo diamo solo a
   // partita finita, altrimenti un partecipante potrebbe scoprire in anticipo le risposte
-  // corrette delle domande non ancora fatte.
-  socket.on('request-my-summary', () => {
+  // corrette delle domande non ancora fatte. Il playerId arriva esplicitamente dal
+  // telefono (come già fa submit-answer), non da socket.data: dopo una riconnessione
+  // (schermo bloccato, pagina ricaricata, rete che va e viene) il telefono ha sempre il suo
+  // playerId salvato, ma la nuova connessione socket non sa più a quale giocatore corrisponde
+  // finché non rifà il join — con questo approccio non serve rifarlo.
+  socket.on('request-my-summary', ({ playerId } = {}) => {
     if (state.status !== 'finished') return;
-    const playerId = socket.data.playerId;
-    if (!playerId) return;
+    if (!playerId || !state.players[playerId]) return;
     const summary = buildMySummary(playerId);
     if (summary) socket.emit('my-summary', summary);
   });

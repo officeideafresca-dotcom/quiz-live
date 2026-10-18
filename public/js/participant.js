@@ -102,7 +102,7 @@
         break;
       case 'finished':
         showPanel('panelFinished');
-        socket.emit('request-my-summary'); // riconnessione dopo la fine: recupera comunque il riepilogo
+        socket.emit('request-my-summary', { playerId }); // riconnessione dopo la fine: recupera comunque il riepilogo
         break;
       default:
         showPanel('panelLobby');
@@ -237,7 +237,7 @@
     el('finalRank').textContent = me ? T('finalRankTemplate').replace('{rank}', idx + 1).replace('{score}', me.score) : '';
     showPanel('panelFinished');
     el('downloadSummaryBtn').style.display = 'none';
-    socket.emit('request-my-summary');
+    socket.emit('request-my-summary', { playerId });
   });
 
   socket.on('my-summary', (data) => {
