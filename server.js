@@ -570,6 +570,25 @@ io.on('connection', (socket) => {
     io.emit('answers:count', { count: state.currentAnswersCount, total: Object.keys(state.players).length });
   });
 
+  // Selezione multipla: il telefono manda qui la selezione ad OGNI tocco (non solo a fine
+  // tempo), così il server ha sempre l'ultima scelta anche se il browser va in background e il
+  // timer che dovrebbe far scattare l'invio finale viene sospeso dal telefono (succede spesso
+  // quando si blocca lo schermo) — senza questo, quella risposta andrebbe persa del tutto.
+  // Non assegna ancora punti: è solo una bozza, finalizzata e punteggiata al momento del reveal.
+  socket.on('update-multi-answer', ({ playerId, questionIndex, optionIndexes }) => {
+    if (state.status !== 'question' || questionIndex !== state.currentIndex) return;
+    const player = state.players[playerId];
+    const q = currentQuestion();
+    if (!player || !q || q.type !== 'multi') return;
+    if (player.answered[questionIndex] != null) return; // già inviata la risposta definitiva
+    const optionCount = q.translations.it.options.length;
+    const clean = Array.isArray(optionIndexes)
+      ? [...new Set(optionIndexes.filter((i) => Number.isInteger(i) && i >= 0 && i < optionCount))]
+      : [];
+    if (!player.draftAnswers) player.draftAnswers = {};
+    player.draftAnswers[questionIndex] = clean;
+  });
+
   // Riepilogo personale per il PDF scaricabile dal proprio telefono: lo diamo solo a
   // partita finita, altrimenti un partecipante potrebbe scoprire in anticipo le risposte
   // corrette delle domande non ancora fatte. Il playerId arriva esplicitamente dal
@@ -633,6 +652,22 @@ io.on('connection', (socket) => {
         state.status = 'reveal';
         const q = currentQuestion();
         const optionCount = q.translations.it.options.length;
+        // Chi non ha mai inviato la risposta definitiva a una domanda a selezione multipla
+        // (es. telefono andato in background) viene finalizzato qui con l'ultima bozza salvata
+        // da update-multi-answer, invece di risultare "nessuna risposta" a vuoto.
+        if (q.type === 'multi') {
+          const correctSet = new Set(q.correctIndexes);
+          Object.values(state.players).forEach((p) => {
+            if (p.answered[state.currentIndex] != null) return;
+            const draft = p.draftAnswers && p.draftAnswers[state.currentIndex];
+            if (!draft) return;
+            const correct = draft.length === correctSet.size && draft.every((i) => correctSet.has(i));
+            const points = correct ? BASE_POINTS : 0;
+            p.answered[state.currentIndex] = true;
+            p.score += points;
+            p.history.push({ questionIndex: state.currentIndex, optionIndex: null, optionIndexes: draft, correct, points, elapsedMs: null });
+          });
+        }
         const counts = new Array(optionCount).fill(0);
         let noAnswer = 0;
         Object.values(state.players).forEach((p) => {

@@ -34,11 +34,13 @@ maxischermo. **Riutilizzabile per qualsiasi evento** — non è legata a Idea Fr
    fretta, più punti fai se è corretta).
 2. **Selezione multipla**: 2-4 opzioni, più di una può essere corretta (le spunti con il
    checkbox nell'editor — segnala quali). Sul telefono i partecipanti possono toccare e
-   ritoccare più opzioni per accenderle/spegnerle finché vogliono: la risposta (con tutto ciò che
-   hanno selezionato in quel momento) parte in automatico solo allo scadere del tempo, senza
-   bisogno di un bottone "conferma". È corretta solo se l'insieme scelto coincide esattamente con
-   quello giusto (nessuna corretta mancante, nessuna sbagliata in più) — altrimenti 0 punti; non
-   c'è bonus di velocità, dato che l'invio avviene sempre a fine tempo.
+   ritoccare più opzioni per accenderle/spegnerle finché vogliono, senza bisogno di un bottone
+   "conferma" — ogni tocco manda già al server la selezione attuale (come bozza), così anche se
+   il telefono va in background (schermo bloccato, cambio app) e il conto alla rovescia finale
+   non riesce a scattare da solo, l'ultima scelta non va persa: viene comunque finalizzata e
+   punteggiata al momento del reveal. È corretta solo se l'insieme scelto coincide esattamente
+   con quello giusto (nessuna corretta mancante, nessuna sbagliata in più) — altrimenti 0 punti;
+   non c'è bonus di velocità, dato che non si registra un orario di invio univoco.
 3. **Vero / Falso**: come la scelta singola, con due sole opzioni fisse.
 
 Sul maxischermo il reveal mostra sempre il grafico con quante persone hanno scelto ogni opzione

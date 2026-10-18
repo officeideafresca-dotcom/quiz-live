@@ -158,12 +158,16 @@
     el('questionModeHint').textContent = T(hintKey);
   }
 
-  // Selezione multipla: ogni tocco accende/spegne l'opzione, nessun invio immediato.
-  // La risposta (anche se vuota) parte da sola allo scadere del tempo — niente bonus di velocità.
+  // Selezione multipla: ogni tocco accende/spegne l'opzione E manda subito al server la
+  // selezione attuale (come bozza, non ancora punteggiata) — non aspettiamo lo scadere del
+  // tempo per informare il server, perché il timer che fa scattare l'invio finale può essere
+  // sospeso dal telefono se lo schermo si blocca o si cambia app, e in quel caso la risposta
+  // andrebbe persa del tutto. Il server la finalizza comunque al momento del reveal.
   function toggleMultiOption(btn, i) {
     if (multiSubmitted) return;
     if (multiSelected.has(i)) { multiSelected.delete(i); btn.classList.remove('selected'); }
     else { multiSelected.add(i); btn.classList.add('selected'); }
+    socket.emit('update-multi-answer', { playerId, questionIndex: currentQuestionIndex, optionIndexes: Array.from(multiSelected) });
   }
 
   function submitMultiAnswer() {
@@ -309,6 +313,17 @@
   socket.on('reset', () => {
     localStorage.removeItem('ql_player_id');
     location.reload();
+  });
+
+  // Rete di sicurezza in più per la selezione multipla: se il telefono va in background
+  // (schermo bloccato, cambio app) mentre una domanda è attiva, proviamo a inviare subito la
+  // risposta invece di aspettare che il timer (che potrebbe essere sospeso) arrivi a zero da
+  // solo. Le opzioni toccate sono comunque già arrivate al server una per una (vedi
+  // toggleMultiOption), quindi questo è un doppio livello di protezione, non l'unico.
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && multiSelected && !multiSubmitted) {
+      submitMultiAnswer();
+    }
   });
 
   // ---- init ----
