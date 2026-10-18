@@ -348,6 +348,27 @@ function buildMySummary(playerId) {
   };
 }
 
+// Chi non ha mai inviato la risposta definitiva a una domanda a selezione multipla (telefono
+// andato in background, o l'admin che passa avanti/termina la partita senza prima rivelare la
+// risposta) viene finalizzato qui con l'ultima bozza salvata da update-multi-answer, invece di
+// risultare "nessuna risposta" a vuoto. Richiamata da reveal, start-question ed end-game.
+function finalizeMultiDrafts(questionIndex) {
+  if (questionIndex == null || questionIndex < 0) return;
+  const q = state.questions[questionIndex];
+  if (!q || q.type !== 'multi') return;
+  const correctSet = new Set(q.correctIndexes);
+  Object.values(state.players).forEach((p) => {
+    if (p.answered[questionIndex] != null) return;
+    const draft = p.draftAnswers && p.draftAnswers[questionIndex];
+    if (!draft) return;
+    const correct = draft.length === correctSet.size && draft.every((i) => correctSet.has(i));
+    const points = correct ? BASE_POINTS : 0;
+    p.answered[questionIndex] = true;
+    p.score += points;
+    p.history.push({ questionIndex, optionIndex: null, optionIndexes: draft, correct, points, elapsedMs: null });
+  });
+}
+
 function computeScore(correct, elapsedMs, timeLimitSec) {
   if (!correct) return 0;
   const timeLimitMs = timeLimitSec * 1000;
@@ -634,6 +655,10 @@ io.on('connection', (socket) => {
       }
       case 'start-question': {
         if (!state.questions.length) return;
+        // Se si passa alla prossima domanda SENZA aver premuto "Mostra risposta corretta" per
+        // quella attiva, finalizziamo comunque le bozze di selezione multipla rimaste in sospeso
+        // prima di abbandonarla — altrimenti andrebbero perse senza mai contare come risposte.
+        if (state.status === 'question') finalizeMultiDrafts(state.currentIndex);
         state.currentIndex = (payload && Number.isInteger(payload.index)) ? payload.index : state.currentIndex + 1;
         if (state.currentIndex < 0 || state.currentIndex >= state.questions.length) return;
         state.status = 'question';
@@ -652,22 +677,7 @@ io.on('connection', (socket) => {
         state.status = 'reveal';
         const q = currentQuestion();
         const optionCount = q.translations.it.options.length;
-        // Chi non ha mai inviato la risposta definitiva a una domanda a selezione multipla
-        // (es. telefono andato in background) viene finalizzato qui con l'ultima bozza salvata
-        // da update-multi-answer, invece di risultare "nessuna risposta" a vuoto.
-        if (q.type === 'multi') {
-          const correctSet = new Set(q.correctIndexes);
-          Object.values(state.players).forEach((p) => {
-            if (p.answered[state.currentIndex] != null) return;
-            const draft = p.draftAnswers && p.draftAnswers[state.currentIndex];
-            if (!draft) return;
-            const correct = draft.length === correctSet.size && draft.every((i) => correctSet.has(i));
-            const points = correct ? BASE_POINTS : 0;
-            p.answered[state.currentIndex] = true;
-            p.score += points;
-            p.history.push({ questionIndex: state.currentIndex, optionIndex: null, optionIndexes: draft, correct, points, elapsedMs: null });
-          });
-        }
+        finalizeMultiDrafts(state.currentIndex);
         const counts = new Array(optionCount).fill(0);
         let noAnswer = 0;
         Object.values(state.players).forEach((p) => {
@@ -695,6 +705,9 @@ io.on('connection', (socket) => {
         return;
       }
       case 'end-game': {
+        // Stesso discorso: se si termina la partita con una domanda a selezione multipla ancora
+        // attiva e mai rivelata, le bozze vanno finalizzate ora, altrimenti si perdono.
+        if (state.status === 'question') finalizeMultiDrafts(state.currentIndex);
         state.status = 'finished';
         io.emit('game:finished', { players: publicPlayerList() });
         return;
