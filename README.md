@@ -126,9 +126,12 @@ configurazione aggiuntiva qui: basta che l'altra app conosca l'URL pubblico e il
   su molte altre piattaforme col piano gratuito — un disco completamente nuovo e vuoto: in
   quel caso il file si perde comunque e si torna alle 16 domande di default scritte nel
   codice. Per una garanzia vera a prova di deploy servirebbe un database esterno o un disco
-  persistente (piano a pagamento) — se per voi questo diventa importante per un evento reale,
-  è una cosa su cui vale la pena investire. Nel frattempo: pubblica gli aggiornamenti del
-  codice prima dell'evento, non a metà, e se lo fai ricrea subito il quiz dall'admin.
+  persistente (piano a pagamento).
+- **Per questo**, nel riquadro "Crea / modifica quiz" c'è anche **"Scarica quiz (backup)"** /
+  **"Carica quiz da backup"**: scarica il quiz configurato come file sul tuo dispositivo (non
+  sul server, quindi sopravvive a qualsiasi deploy) e ricaricalo con un tocco quando serve. È
+  la copia di sicurezza vera — usala dopo ogni modifica importante, e prima di pubblicare un
+  aggiornamento del codice, così non perdi mai il lavoro fatto.
 - Fino a 300 giocatori e 50 domande per partita (limiti modificabili in `server.js`).
 - I giocatori si riconnettono automaticamente con lo stesso punteggio se ricaricano la pagina
   durante la stessa partita (l'identità resta salvata nel browser del telefono).

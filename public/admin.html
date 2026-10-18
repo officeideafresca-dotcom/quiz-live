@@ -81,6 +81,14 @@
       <button class="btn-secondary" id="btnAddQuestion">+ Aggiungi domanda</button>
       <button class="btn-primary" id="btnSaveQuiz">Salva quiz</button>
       <div class="error-msg" id="quizError"></div>
+
+      <div style="border-top:1px solid rgba(255,255,255,0.15); margin-top:6px; padding-top:12px; font-size:0.76rem; opacity:0.7;">
+        Copia di sicurezza sul tuo dispositivo: un deploy del sito cancella il quiz salvato sul
+        server, ma un file scaricato qui resta sempre tuo, pronto da ricaricare quando serve.
+      </div>
+      <button class="btn-secondary" id="btnExportQuiz">Scarica quiz (backup)</button>
+      <input type="file" id="importQuizFile" accept="application/json" style="display:none;" />
+      <button class="btn-secondary" id="btnImportQuiz">Carica quiz da backup</button>
     </div>
 
     <div class="box">

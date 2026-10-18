@@ -294,10 +294,13 @@
 
   el('btnAddQuestion').addEventListener('click', () => addQuestionCard());
 
-  el('btnSaveQuiz').addEventListener('click', () => {
+  // Legge lo stato attuale dell'editor (tutte le card domanda) e lo trasforma nella stessa
+  // struttura che va al server con 'set-quiz' — usata sia per salvare sia per il backup JSON,
+  // così le due cose restano sempre coerenti con un'unica validazione.
+  function collectQuizFromEditor() {
     const title = el('quizTitleInput').value.trim() || 'Quiz';
     const cards = Array.from(document.querySelectorAll('.question-card'));
-    if (!cards.length) { showSaveError('Aggiungi almeno una domanda'); return; }
+    if (!cards.length) { showSaveError('Aggiungi almeno una domanda'); return null; }
     const questions = [];
     for (let idx = 0; idx < cards.length; idx++) {
       const card = cards[idx];
@@ -305,7 +308,7 @@
       const type = card.querySelector(`input[name="type-${id}"]:checked`).value;
       const timeLimitSec = Number(card.querySelector('.q-time').value) || 20;
       const itText = card._translations.it.text.trim();
-      if (!itText) { showSaveError(`Domanda ${idx + 1}: scrivi almeno il testo in italiano (le altre lingue sono opzionali)`); return; }
+      if (!itText) { showSaveError(`Domanda ${idx + 1}: scrivi almeno il testo in italiano (le altre lingue sono opzionali)`); return null; }
 
       let translations;
       if (type === 'tf') {
@@ -313,14 +316,14 @@
         QUIZ_LANGS.forEach((l) => { translations[l] = { text: card._translations[l].text.trim(), options: TF_LABELS[l] }; });
       } else {
         const itOpts = card._translations.it.options.map((v) => v.trim());
-        if (itOpts.filter((o) => o).length < 2) { showSaveError(`Domanda ${idx + 1}: servono almeno 2 opzioni in italiano`); return; }
+        if (itOpts.filter((o) => o).length < 2) { showSaveError(`Domanda ${idx + 1}: servono almeno 2 opzioni in italiano`); return null; }
         translations = {};
         QUIZ_LANGS.forEach((l) => { translations[l] = { text: card._translations[l].text.trim(), options: card._translations[l].options.map((v) => v.trim()) }; });
       }
 
       if (type === 'multi') {
         const correctIndexes = Array.from(card.querySelectorAll(`input[name="correct-${id}"]:checked`)).map((i) => Number(i.value));
-        if (!correctIndexes.length) { showSaveError(`Domanda ${idx + 1}: segna almeno una risposta corretta`); return; }
+        if (!correctIndexes.length) { showSaveError(`Domanda ${idx + 1}: segna almeno una risposta corretta`); return null; }
         questions.push({ type, translations, correctIndexes, timeLimitSec });
       } else {
         const correctRadio = card.querySelector(`input[name="correct-${id}"]:checked`);
@@ -330,9 +333,54 @@
     }
     el('quizError').textContent = '';
     const showLeaderboardAfterEachQuestion = document.querySelector('input[name="leaderboardTiming"]:checked').value === 'each';
-    sendAdmin('set-quiz', { title, questions, showLeaderboardAfterEachQuestion });
+    return { title, questions, showLeaderboardAfterEachQuestion };
+  }
+
+  el('btnSaveQuiz').addEventListener('click', () => {
+    const data = collectQuizFromEditor();
+    if (!data) return;
+    sendAdmin('set-quiz', data);
     clearDirty();
-    alert(`Quiz salvato con ${questions.length} domande.`);
+    alert(`Quiz salvato con ${data.questions.length} domande.`);
+  });
+
+  // ---------- Backup del quiz sul proprio dispositivo (sopravvive a un deploy del sito) ----------
+  el('btnExportQuiz').addEventListener('click', () => {
+    const data = collectQuizFromEditor();
+    if (!data) return;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const safeTitle = (data.title || 'quiz').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+    a.href = url;
+    a.download = `${safeTitle}-backup.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  });
+
+  el('btnImportQuiz').addEventListener('click', () => el('importQuizFile').click());
+
+  el('importQuizFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let data;
+      try { data = JSON.parse(reader.result); } catch (err) { alert('File non valido: non è un backup di quiz leggibile.'); return; }
+      if (!data || !Array.isArray(data.questions) || !data.questions.length) {
+        alert('File non valido: non contiene domande.');
+        return;
+      }
+      el('quizTitleInput').value = data.title || '';
+      document.querySelector(`input[name="leaderboardTiming"][value="${data.showLeaderboardAfterEachQuestion === false ? 'end' : 'each'}"]`).checked = true;
+      el('questionsList').innerHTML = '';
+      data.questions.forEach((q) => addQuestionCard(q));
+      markDirty(); // ricaricato nell'editor, ma va ancora premuto "Salva ora" per renderlo attivo
+      alert(`Quiz ricaricato dal backup (${data.questions.length} domande). Premi "Salva ora" per renderlo attivo.`);
+    };
+    reader.onerror = () => alert('Impossibile leggere il file.');
+    reader.readAsText(file);
+    el('importQuizFile').value = ''; // permette di ricaricare lo stesso file una seconda volta
   });
 
   // Il salvataggio di TUTTE le domande fallisce se anche una sola non è valida: un alert
