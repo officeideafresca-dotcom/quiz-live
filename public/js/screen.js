@@ -129,12 +129,16 @@
   });
 
   socket.on('leaderboard:show', (payload) => {
+    if (state && state.showScores === false) return; // classifica disattivata: ignora
     renderRankList('lbList', payload.players);
     showView('viewLeaderboard');
   });
 
   socket.on('game:finished', (payload) => {
-    renderRankList('finalList', payload.players.slice(0, 10));
+    const scoresOn = !state || state.showScores !== false;
+    el('finishedTitle').textContent = scoresOn ? '🏆 Classifica finale 🏆' : '🏁 Quiz finito! 🏁';
+    if (scoresOn) renderRankList('finalList', payload.players.slice(0, 10));
+    else el('finalList').innerHTML = '';
     showView('viewFinished');
   });
 

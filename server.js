@@ -40,6 +40,7 @@ function saveQuizToDisk() {
       title: state.quizTitle,
       questions: state.questions,
       showLeaderboardAfterEachQuestion: state.showLeaderboardAfterEachQuestion,
+      showScores: state.showScores,
       screenLang: state.screenLang,
     };
     fs.writeFileSync(QUIZ_FILE, JSON.stringify(data));
@@ -264,6 +265,7 @@ function freshState() {
     quizTitle: useSaved ? String(saved.title || 'Quiz').slice(0, 80) : DEFAULT_QUIZ.title.it,
     questions: useSaved ? savedQuestions : defaultQuestions(),
     showLeaderboardAfterEachQuestion: useSaved ? saved.showLeaderboardAfterEachQuestion !== false : true,
+    showScores: useSaved && saved.showScores === false ? false : true, // classifica e punteggi ai partecipanti: disattivabili dall'admin
     currentIndex: -1,
     currentStartedAt: null,
     currentAnswersCount: 0,
@@ -344,6 +346,7 @@ function buildMySummary(playerId) {
     quizTitle: state.quizTitle,
     nickname: player.nickname,
     totalScore: player.score,
+    showScores: state.showScores,
     items,
   };
 }
@@ -531,6 +534,7 @@ function initPayload() {
     screenLang: state.screenLang,
     questionCount: state.questions.length,
     showLeaderboardAfterEachQuestion: state.showLeaderboardAfterEachQuestion,
+    showScores: state.showScores,
     currentIndex: state.currentIndex,
     players: publicPlayerList(),
     question: state.status === 'question' ? publicQuestionForScreen(currentQuestion()) : null,
@@ -647,6 +651,7 @@ io.on('connection', (socket) => {
         state.quizTitle = String((payload && payload.title) || 'Quiz').slice(0, 80);
         state.questions = sanitizeQuestions(payload && payload.questions);
         state.showLeaderboardAfterEachQuestion = !(payload && payload.showLeaderboardAfterEachQuestion === false);
+        state.showScores = !(payload && payload.showScores === false);
         state.currentIndex = -1;
         state.status = 'lobby';
         saveQuizToDisk();
@@ -752,7 +757,7 @@ io.on('connection', (socket) => {
           correctIndex: q.correctIndex,
           correctIndexes: q.correctIndexes,
         }));
-        socket.emit('admin:export-data', { quizTitle: state.quizTitle, questions, players });
+        socket.emit('admin:export-data', { quizTitle: state.quizTitle, questions, players, showScores: state.showScores });
         return;
       }
       default:

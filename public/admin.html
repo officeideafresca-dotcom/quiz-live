@@ -71,10 +71,18 @@
       <label>Titolo del quiz</label>
       <input type="text" id="quizTitleInput" placeholder="Es. Quiz dei 25 anni" maxlength="80" />
 
-      <label>Quando mostrare la classifica</label>
-      <div class="type-toggle" style="margin-bottom:4px;">
-        <label><input type="radio" name="leaderboardTiming" value="each" checked /> Dopo ogni domanda</label>
-        <label><input type="radio" name="leaderboardTiming" value="end" /> Solo alla fine</label>
+      <label><input type="checkbox" id="showScoresCheckbox" checked style="width:auto; margin-right:6px;" />Mostra classifica e punteggi ai partecipanti</label>
+      <div style="font-size:0.76rem; opacity:0.7; margin-bottom:6px;">
+        Se disattivato, i partecipanti vedono solo risposta giusta/sbagliata (niente punti,
+        niente classifica, niente podio finale) — utile per un quiz senza competizione.
+      </div>
+
+      <div id="leaderboardTimingBox">
+        <label>Quando mostrare la classifica</label>
+        <div class="type-toggle" style="margin-bottom:4px;">
+          <label><input type="radio" name="leaderboardTiming" value="each" checked /> Dopo ogni domanda</label>
+          <label><input type="radio" name="leaderboardTiming" value="end" /> Solo alla fine</label>
+        </div>
       </div>
 
       <div id="questionsList" style="display:flex; flex-direction:column; gap:10px;"></div>

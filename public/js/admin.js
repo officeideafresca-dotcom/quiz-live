@@ -34,6 +34,8 @@
   socket.on('admin:quiz-data', (data) => {
     el('quizTitleInput').value = data.title || '';
     document.querySelector(`input[name="leaderboardTiming"][value="${data.showLeaderboardAfterEachQuestion === false ? 'end' : 'each'}"]`).checked = true;
+    el('showScoresCheckbox').checked = data.showScores !== false;
+    applyShowScoresUI();
     el('questionsList').innerHTML = '';
     if (data.questions && data.questions.length) {
       data.questions.forEach((q) => addQuestionCard(q));
@@ -42,6 +44,15 @@
     }
     clearDirty(); // appena ricaricato dal server: non c'è ancora nessuna modifica locale
   });
+
+  // Nasconde l'impostazione "quando mostrare la classifica" (inutile se la classifica è
+  // disattivata del tutto) e il bottone "Mostra classifica" nel controllo partita.
+  function applyShowScoresUI() {
+    const enabled = el('showScoresCheckbox').checked;
+    el('leaderboardTimingBox').style.display = enabled ? 'block' : 'none';
+    el('btnLeaderboard').style.display = enabled ? 'block' : 'none';
+  }
+  el('showScoresCheckbox').addEventListener('change', () => { applyShowScoresUI(); markDirty(); });
 
   // ---------- Barra "modifiche non salvate" ----------
   // Il bottone "Salva quiz" in fondo alla lista è facile da perdere di vista quando ci sono
@@ -103,6 +114,8 @@
     if (st.showLeaderboardAfterEachQuestion === false) {
       document.querySelector('input[name="leaderboardTiming"][value="end"]').checked = true;
     }
+    el('showScoresCheckbox').checked = st.showScores !== false;
+    applyShowScoresUI();
     if (st.screenLang) el('screenLangSelect').value = st.screenLang;
     renderStatus();
   });
@@ -333,7 +346,8 @@
     }
     el('quizError').textContent = '';
     const showLeaderboardAfterEachQuestion = document.querySelector('input[name="leaderboardTiming"]:checked').value === 'each';
-    return { title, questions, showLeaderboardAfterEachQuestion };
+    const showScores = el('showScoresCheckbox').checked;
+    return { title, questions, showLeaderboardAfterEachQuestion, showScores };
   }
 
   el('btnSaveQuiz').addEventListener('click', () => {
@@ -373,6 +387,8 @@
       }
       el('quizTitleInput').value = data.title || '';
       document.querySelector(`input[name="leaderboardTiming"][value="${data.showLeaderboardAfterEachQuestion === false ? 'end' : 'each'}"]`).checked = true;
+      el('showScoresCheckbox').checked = data.showScores !== false;
+      applyShowScoresUI();
       el('questionsList').innerHTML = '';
       data.questions.forEach((q) => addQuestionCard(q));
       markDirty(); // ricaricato nell'editor, ma va ancora premuto "Salva ora" per renderlo attivo
@@ -408,16 +424,21 @@
   });
 
   function downloadCsv(data) {
+    const scoresOn = data.showScores !== false;
     const rows = [];
-    rows.push(['Nickname', 'Punteggio totale', ...data.questions.map((q, i) => `D${i + 1}: ${q.text}`)]);
+    const header = ['Nickname'];
+    if (scoresOn) header.push('Punteggio totale');
+    header.push(...data.questions.map((q, i) => `D${i + 1}: ${q.text}`));
+    rows.push(header);
     data.players
       .sort((a, b) => b.score - a.score)
       .forEach((p) => {
-        const row = [p.nickname, p.score];
+        const row = [p.nickname];
+        if (scoresOn) row.push(p.score);
         data.questions.forEach((q, i) => {
           const h = p.history.find((x) => x.questionIndex === i);
           if (!h) row.push('Non risposto');
-          else row.push(`${h.correct ? 'Corretto' : 'Sbagliato'} (${h.points} pt)`);
+          else row.push(scoresOn ? `${h.correct ? 'Corretto' : 'Sbagliato'} (${h.points} pt)` : (h.correct ? 'Corretto' : 'Sbagliato'));
         });
         rows.push(row);
       });

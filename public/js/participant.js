@@ -17,6 +17,7 @@
   let lastReveal = null; // riapplicato se si cambia lingua mentre il reveal è a schermo
   let currentQuestionData = null; // riapplicato se si cambia lingua mentre una domanda è attiva
   let mySummary = null; // risposte e risultato di tutte le domande, per il PDF scaricabile
+  let showScores = true; // classifica e punteggi: disattivabili dall'admin per quiz senza competizione
 
   function T(key) { return window.t(lang, key); }
 
@@ -88,6 +89,7 @@
 
   socket.on('init', (st) => {
     currentQuestionIndex = st.currentIndex;
+    showScores = st.showScores !== false;
     // Se il playerId salvato non risulta più tra i giocatori del server (es. un "Reset
     // completo" avvenuto mentre il telefono era disconnesso anche solo un attimo — schermo
     // bloccato, rete che va e viene — e quindi non ha mai ricevuto l'evento 'reset' che lo
@@ -239,7 +241,7 @@
     el('revealIcon').textContent = correct ? '✅' : (noAnswer ? '⌛' : '❌');
     el('revealText').textContent = noAnswer ? T('resultTimeout') : (correct ? T('resultCorrect') : T('resultWrong'));
     el('revealText').className = correct ? 'result-correct' : 'result-wrong';
-    if (me) {
+    if (me && showScores) {
       el('revealPoints').textContent = `${T('totalScoreLabel')}: ${me.score}`;
       el('revealRank').textContent = `${T('rankLabel')}: ${idx + 1}°`;
     } else {
@@ -254,10 +256,15 @@
   });
 
   socket.on('game:finished', (payload) => {
-    renderRankList('finalList', payload.players.slice(0, 10));
-    const idx = payload.players.findIndex((p) => p.id === playerId);
-    const me = idx >= 0 ? payload.players[idx] : null;
-    el('finalRank').textContent = me ? T('finalRankTemplate').replace('{rank}', idx + 1).replace('{score}', me.score) : '';
+    if (showScores) {
+      renderRankList('finalList', payload.players.slice(0, 10));
+      const idx = payload.players.findIndex((p) => p.id === playerId);
+      const me = idx >= 0 ? payload.players[idx] : null;
+      el('finalRank').textContent = me ? T('finalRankTemplate').replace('{rank}', idx + 1).replace('{score}', me.score) : '';
+    } else {
+      el('finalList').innerHTML = '';
+      el('finalRank').textContent = '';
+    }
     showPanel('panelFinished');
     el('downloadSummaryBtn').style.display = 'none';
     socket.emit('request-my-summary', { playerId });
@@ -299,8 +306,9 @@
       });
     };
 
+    const scoresOn = mySummary.showScores !== false;
     writeLine(mySummary.quizTitle || 'Quiz', 18, true);
-    writeLine(`${mySummary.nickname} — ${T('totalScoreLabel')}: ${mySummary.totalScore}`, 12);
+    writeLine(scoresOn ? `${mySummary.nickname} — ${T('totalScoreLabel')}: ${mySummary.totalScore}` : mySummary.nickname, 12);
     y += 4;
 
     mySummary.items.forEach((item, i) => {
@@ -310,7 +318,7 @@
       writeLine(`${i + 1}. ${qText}`, 12, true);
       writeLine(`${T('yourAnswerLabel')}: ${formatMyAnswer(item, opts)}`, 10);
       const resultLabel = !item.answered ? T('resultTimeout') : (item.correct ? T('resultCorrect') : T('resultWrong'));
-      writeLine(`${resultLabel} — ${item.points} ${T('pointsSuffix')}`, 10);
+      writeLine(scoresOn ? `${resultLabel} — ${item.points} ${T('pointsSuffix')}` : resultLabel, 10);
       y += 3;
     });
 
