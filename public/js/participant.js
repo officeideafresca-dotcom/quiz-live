@@ -88,7 +88,26 @@
 
   socket.on('init', (st) => {
     currentQuestionIndex = st.currentIndex;
-    if (!playerId) { showPanel('panelJoin'); return; }
+    // Se il playerId salvato non risulta più tra i giocatori del server (es. un "Reset
+    // completo" avvenuto mentre il telefono era disconnesso anche solo un attimo — schermo
+    // bloccato, rete che va e viene — e quindi non ha mai ricevuto l'evento 'reset' che lo
+    // avrebbe fatto rientrare da capo), il telefono resterebbe "fantasma": vedrebbe le
+    // domande (arrivano a chiunque sia collegato) ma nessuna risposta conterebbe mai, perché
+    // punterebbe a un giocatore che per il server non esiste più. Qui ce ne accorgiamo da
+    // soli e rientriamo subito in automatico con lo stesso nickname.
+    const stillValidPlayer = !playerId || !Array.isArray(st.players) || st.players.some((p) => p.id === playerId);
+    if (!stillValidPlayer) {
+      playerId = null;
+      localStorage.removeItem('ql_player_id');
+    }
+    if (!playerId) {
+      if (nickname) {
+        socket.emit('join-game', { nickname, playerId: null });
+      } else {
+        showPanel('panelJoin');
+        return;
+      }
+    }
     switch (st.status) {
       case 'lobby':
         showPanel('panelLobby');
