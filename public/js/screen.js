@@ -3,6 +3,67 @@
   const socket = io();
   const SHAPES = ['▲', '◆', '●', '■'];
 
+  // Il maxischermo mostra sempre una sola lingua per tutti (scelta dal pannello admin in
+  // "Lingua maxischermo", vedi state.screenLang): queste scritte fisse del testo ci sono anche
+  // quando le domande non c'entrano (lobby, progresso, classifica), quindi vanno tradotte a
+  // parte dalle traduzioni dei partecipanti (quelle seguono la lingua di ciascun telefono).
+  const SCREEN_I18N = {
+    it: {
+      connected: (n) => `${n} giocator${n === 1 ? 'e' : 'i'} connessi`,
+      questionsProgress: (i, total) => `${i}/${total} domande`,
+      answeredProgress: (count, total) => `${count} / ${total} hanno risposto`,
+      correctAnswerLabel: 'Risposta corretta:',
+      modeHints: { multi: 'Selezione multipla: puoi scegliere più risposte', mc: 'Scelta singola: una sola risposta corretta', tf: 'Vero o Falso' },
+      leaderboardTitle: 'Classifica',
+      finalTitleScores: '🏆 Classifica finale 🏆',
+      finalTitleNoScores: '🏁 Quiz finito! 🏁',
+    },
+    de: {
+      connected: (n) => `${n} verbundene Teilnehmer`,
+      questionsProgress: (i, total) => `${i}/${total} Fragen`,
+      answeredProgress: (count, total) => `${count} / ${total} haben geantwortet`,
+      correctAnswerLabel: 'Richtige Antwort:',
+      modeHints: { multi: 'Mehrfachauswahl: du kannst mehrere Antworten wählen', mc: 'Einzelauswahl: nur eine richtige Antwort', tf: 'Wahr oder Falsch' },
+      leaderboardTitle: 'Rangliste',
+      finalTitleScores: '🏆 Endrangliste 🏆',
+      finalTitleNoScores: '🏁 Quiz beendet! 🏁',
+    },
+    fr: {
+      connected: (n) => `${n} participant${n === 1 ? '' : 's'} connecté${n === 1 ? '' : 's'}`,
+      questionsProgress: (i, total) => `${i}/${total} questions`,
+      answeredProgress: (count, total) => `${count} / ${total} ont répondu`,
+      correctAnswerLabel: 'Bonne réponse :',
+      modeHints: { multi: 'Sélection multiple : tu peux choisir plusieurs réponses', mc: 'Choix unique : une seule bonne réponse', tf: 'Vrai ou Faux' },
+      leaderboardTitle: 'Classement',
+      finalTitleScores: '🏆 Classement final 🏆',
+      finalTitleNoScores: '🏁 Quiz terminé ! 🏁',
+    },
+    es: {
+      connected: (n) => `${n} participante${n === 1 ? '' : 's'} conectado${n === 1 ? '' : 's'}`,
+      questionsProgress: (i, total) => `${i}/${total} preguntas`,
+      answeredProgress: (count, total) => `${count} / ${total} han respondido`,
+      correctAnswerLabel: 'Respuesta correcta:',
+      modeHints: { multi: 'Selección múltiple: puedes elegir varias respuestas', mc: 'Selección única: solo una respuesta correcta', tf: 'Verdadero o Falso' },
+      leaderboardTitle: 'Clasificación',
+      finalTitleScores: '🏆 Clasificación final 🏆',
+      finalTitleNoScores: '🏁 ¡Quiz terminado! 🏁',
+    },
+    en: {
+      connected: (n) => `${n} participant${n === 1 ? '' : 's'} connected`,
+      questionsProgress: (i, total) => `${i}/${total} questions`,
+      answeredProgress: (count, total) => `${count} / ${total} answered`,
+      correctAnswerLabel: 'Correct answer:',
+      modeHints: { multi: 'Multiple choice: you can select more than one answer', mc: 'Single choice: only one correct answer', tf: 'True or False' },
+      leaderboardTitle: 'Leaderboard',
+      finalTitleScores: '🏆 Final leaderboard 🏆',
+      finalTitleNoScores: '🏁 Quiz finished! 🏁',
+    },
+  };
+  function ST(key) {
+    const dict = SCREEN_I18N[state && state.screenLang] || SCREEN_I18N.it;
+    return dict[key] != null ? dict[key] : SCREEN_I18N.it[key];
+  }
+
   let state = { status: 'lobby', players: [] };
   let qTimerInterval = null;
 
@@ -15,8 +76,15 @@
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  // Scritte fisse che non dipendono da una domanda specifica: vanno riapplicate anche quando
+  // l'admin cambia lingua schermo mentre si è in lobby, in classifica, ecc.
+  function applyScreenStatics() {
+    el('leaderboardTitleText').textContent = ST('leaderboardTitle');
+    renderLobbyPlayers(state.players || []);
+  }
+
   function renderLobbyPlayers(players) {
-    el('playerCount').textContent = `${players.length} giocator${players.length === 1 ? 'e' : 'i'} connessi`;
+    el('playerCount').textContent = ST('connected')(players.length);
     const grid = el('playerGrid');
     grid.innerHTML = '';
     players.forEach((p) => {
@@ -42,8 +110,8 @@
     state = st;
     el('quizTitleText').textContent = st.quizTitle || '—';
     el('lobbyQuizTitle').textContent = st.quizTitle || 'Quiz Live';
-    if (st.questionCount) el('progressText').textContent = `${Math.max(0, st.currentIndex + 1)}/${st.questionCount} domande`;
-    renderLobbyPlayers(st.players || []);
+    applyScreenStatics();
+    if (st.questionCount) el('progressText').textContent = ST('questionsProgress')(Math.max(0, st.currentIndex + 1), st.questionCount);
     if (st.status === 'lobby') showView('viewLobby');
     else if (st.status === 'question' && st.question) renderQuestion(st.question, null);
     else if (st.status === 'finished') showView('viewFinished');
@@ -54,7 +122,7 @@
 
   socket.on('question:start', (payload) => {
     const q = payload.screen;
-    el('progressText').textContent = `${q.index + 1}/${q.total} domande`;
+    el('progressText').textContent = ST('questionsProgress')(q.index + 1, q.total);
     renderQuestion(q, payload.startedAt);
   });
 
@@ -62,8 +130,7 @@
   // lingua del maxischermo a metà di una domanda già partita, senza toccare il conto alla rovescia.
   function renderQuestionContent(q) {
     el('qText').textContent = q.text || '';
-    const hints = { multi: 'Selezione multipla: puoi scegliere più risposte', mc: 'Scelta singola: una sola risposta corretta', tf: 'Vero o Falso' };
-    el('qHint').textContent = hints[q.type] || '';
+    el('qHint').textContent = ST('modeHints')[q.type] || '';
     const box = el('qAnswers');
     box.innerHTML = '';
     (q.options || []).forEach((opt, i) => {
@@ -93,11 +160,13 @@
   // L'admin ha cambiato la lingua del maxischermo: se c'è una domanda attiva, ne aggiorniamo
   // solo il contenuto (il timer, già in corso, non viene toccato).
   socket.on('screen-lang:update', (payload) => {
+    if (state) state.screenLang = payload.screenLang;
+    applyScreenStatics();
     if (payload.question) renderQuestionContent(payload.question);
   });
 
   socket.on('answers:count', (p) => {
-    el('qProgress').textContent = `${p.count} / ${p.total} hanno risposto`;
+    el('qProgress').textContent = ST('answeredProgress')(p.count, p.total);
   });
 
   socket.on('question:reveal', (payload) => {
@@ -107,7 +176,7 @@
       .map((opt, i) => (correctSet.has(i) ? `${SHAPES[i] || ''} ${opt}` : null))
       .filter(Boolean)
       .join('  ·  ');
-    el('revealCorrectText').textContent = `Risposta corretta: ${correctLabel}`;
+    el('revealCorrectText').textContent = `${ST('correctAnswerLabel')} ${correctLabel}`;
     const bars = el('revealBars');
     bars.innerHTML = '';
     const maxCount = Math.max(1, ...payload.counts);
@@ -136,7 +205,7 @@
 
   socket.on('game:finished', (payload) => {
     const scoresOn = !state || state.showScores !== false;
-    el('finishedTitle').textContent = scoresOn ? '🏆 Classifica finale 🏆' : '🏁 Quiz finito! 🏁';
+    el('finishedTitle').textContent = scoresOn ? ST('finalTitleScores') : ST('finalTitleNoScores');
     if (scoresOn) renderRankList('finalList', payload.players.slice(0, 10));
     else el('finalList').innerHTML = '';
     showView('viewFinished');
