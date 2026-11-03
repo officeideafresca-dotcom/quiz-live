@@ -317,8 +317,10 @@
       ensureSpace();
       writeLine(`${i + 1}. ${qText}`, 12, true);
       writeLine(`${T('yourAnswerLabel')}: ${formatMyAnswer(item, opts)}`, 10);
-      const resultLabel = !item.answered ? T('resultTimeout') : (item.correct ? T('resultCorrect') : T('resultWrong'));
-      writeLine(scoresOn ? `${resultLabel} — ${item.points} ${T('pointsSuffix')}` : resultLabel, 10);
+      if (scoresOn) {
+        const resultLabel = !item.answered ? T('resultTimeout') : (item.correct ? T('resultCorrect') : T('resultWrong'));
+        writeLine(`${resultLabel} — ${item.points} ${T('pointsSuffix')}`, 10);
+      }
       y += 3;
     });
 
