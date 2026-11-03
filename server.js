@@ -522,6 +522,7 @@ app.get('/api/results', (req, res) => {
     quizTitle: state.quizTitle,
     status: state.status,
     playerCount: players.length,
+    showScores: state.showScores,
     questions,
     players,
   });
