@@ -512,12 +512,15 @@ app.get('/api/results', (req, res) => {
   const players = Object.values(state.players)
     .map((p) => ({ nickname: p.nickname, score: p.score, history: p.history }))
     .sort((a, b) => b.score - a.score);
-  const questions = state.questions.map((q) => ({
-    text: q.translations.it.text,
-    options: q.translations.it.options,
-    correctIndex: q.correctIndex,
-    correctIndexes: q.correctIndexes,
-  }));
+  const questions = state.questions.map((q) => {
+    const en = q.translations.en || q.translations.it;
+    return {
+      text: en.text,
+      options: en.options,
+      correctIndex: q.correctIndex,
+      correctIndexes: q.correctIndexes,
+    };
+  });
   res.json({
     quizTitle: state.quizTitle,
     status: state.status,
